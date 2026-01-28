@@ -1,0 +1,55 @@
+{
+  "name": "snakes-and-ladders",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Real-time multiplayer Snakes and Ladders web game",
+  "keywords": [
+    "snakes-and-ladders",
+    "multiplayer",
+    "webgl",
+    "game"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reaandrew/snakes-and-ladders.git"
+  },
+  "license": "MIT",
+  "author": "reaandrew",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "clean": "pnpm -r clean",
+    "dev": "pnpm run dev:server & pnpm run dev:frontend",
+    "dev:backend": "pnpm --filter @snakes-and-ladders/backend dev",
+    "dev:frontend": "pnpm --filter @snakes-and-ladders/frontend dev",
+    "dev:server": "pnpm --filter @snakes-and-ladders/backend local",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "prepare": "lefthook install",
+    "storybook": "pnpm --filter @snakes-and-ladders/frontend storybook",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.0",
+    "@semantic-release/git": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "conventional-changelog-conventionalcommits": "^8.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.29.1",
+    "lefthook": "^1.6.0",
+    "prettier": "^3.2.0",
+    "semantic-release": "^24.0.0",
+    "typescript": "^5.4.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

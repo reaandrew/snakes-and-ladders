@@ -1,0 +1,60 @@
+site_name: Snakes and Ladders
+site_description: Real-time multiplayer Snakes and Ladders web game
+site_author: reaandrew
+repo_url: https://github.com/reaandrew/snakes-and-ladders
+repo_name: reaandrew/snakes-and-ladders
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: blue
+      accent: cyan
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: blue
+      accent: cyan
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - toc.integrate
+    - search.suggest
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - admonition
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - AWS Infrastructure: architecture/aws.md
+      - DynamoDB Design: architecture/dynamodb.md
+  - API:
+      - REST API: api/rest.md
+      - WebSocket Protocol: api/websocket.md
+  - Development:
+      - Setup: development/setup.md
+      - Testing: development/testing.md
+      - Deployment: development/deployment.md
+
+plugins:
+  - search
