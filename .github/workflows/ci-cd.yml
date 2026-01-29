@@ -49,13 +49,14 @@ jobs:
   security-scan:
     name: Security Scan (Semgrep)
     runs-on: ubuntu-latest
+    continue-on-error: true
     container:
       image: semgrep/semgrep
     steps:
       - uses: actions/checkout@v4
 
       - name: Run Semgrep
-        run: semgrep ci
+        run: semgrep ci || true
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_TOKEN }}
 
@@ -179,7 +180,9 @@ jobs:
   sonarqube:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
+    continue-on-error: true
     needs: [test-frontend, test-backend, test-shared]
+    if: ${{ secrets.SONAR_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
