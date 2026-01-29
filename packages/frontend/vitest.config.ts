@@ -17,8 +17,12 @@ export default defineConfig({
         '**/index.tsx',
         '**/main.tsx',
         '**/*.stories.tsx',
+        '**/*.test.ts',
+        '**/*.test.tsx',
         '**/test/**',
         '.storybook/**',
+        '**/types.ts',
+        '**/vite-env.d.ts',
       ],
       thresholds: {
         lines: 80,
