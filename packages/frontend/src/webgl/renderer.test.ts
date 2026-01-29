@@ -411,7 +411,7 @@ describe('renderer', () => {
       startRenderLoop(state);
 
       expect(callback).toBeDefined();
-      callback!(1000);
+      if (callback) callback(1000);
 
       expect(state.lastTime).toBe(1000);
 
