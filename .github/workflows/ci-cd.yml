@@ -182,7 +182,6 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     needs: [test-frontend, test-backend, test-shared]
-    if: ${{ secrets.SONAR_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
