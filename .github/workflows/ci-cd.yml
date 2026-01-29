@@ -34,6 +34,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Build Shared (for type resolution)
+        run: pnpm --filter @snakes-and-ladders/shared build
+
       - name: Lint
         run: pnpm lint
 
@@ -73,6 +76,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Build Shared
+        run: pnpm --filter @snakes-and-ladders/shared build
+
       - name: Run Tests
         run: pnpm --filter @snakes-and-ladders/frontend test:coverage
 
@@ -98,6 +104,9 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Build Shared
+        run: pnpm --filter @snakes-and-ladders/shared build
 
       - name: Run Tests
         run: pnpm --filter @snakes-and-ladders/backend test:coverage
@@ -217,6 +226,9 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Build Shared
+        run: pnpm --filter @snakes-and-ladders/shared build
 
       - name: Build Storybook
         run: pnpm --filter @snakes-and-ladders/frontend build-storybook
