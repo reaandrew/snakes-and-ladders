@@ -22,8 +22,3 @@ variable "terraform_state_bucket" {
   default     = "snakes-and-ladders-terraform-state"
 }
 
-variable "terraform_lock_table" {
-  description = "DynamoDB table for Terraform state locking"
-  type        = string
-  default     = "snakes-and-ladders-terraform-lock"
-}

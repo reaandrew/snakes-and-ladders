@@ -247,15 +247,11 @@ jobs:
           terraform validate
         working-directory: infrastructure/aws_setup
 
-      - name: Terraform Validate (modules)
+      - name: Terraform Validate (main)
         run: |
-          for module in dynamodb lambda api-gateway s3-cloudfront; do
-            echo "Validating module: $module"
-            cd infrastructure/modules/$module
-            terraform init -backend=false
-            terraform validate
-            cd ../../..
-          done
+          terraform init -backend=false
+          terraform validate
+        working-directory: infrastructure
 
   deploy:
     name: Deploy
@@ -290,15 +286,15 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: infrastructure/environments/dev
+        working-directory: infrastructure
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan
-        working-directory: infrastructure/environments/dev
+        working-directory: infrastructure
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
-        working-directory: infrastructure/environments/dev
+        working-directory: infrastructure
 
       - name: Deploy Frontend to S3
         run: |
@@ -306,7 +302,7 @@ jobs:
           DIST_ID=$(terraform output -raw cloudfront_distribution_id)
           aws s3 sync packages/frontend/dist/ s3://$BUCKET --delete
           aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
-        working-directory: infrastructure/environments/dev
+        working-directory: infrastructure
 
   release:
     name: Semantic Release

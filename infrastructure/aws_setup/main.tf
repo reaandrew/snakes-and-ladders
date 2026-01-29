@@ -56,41 +56,14 @@ resource "aws_iam_role" "github_actions" {
   }
 }
 
-# IAM Policy for deployment
-resource "aws_iam_role_policy" "github_actions_deploy" {
-  name = "github-actions-deploy-policy"
+# Terraform state access
+resource "aws_iam_role_policy" "terraform_state" {
+  name = "terraform-state-access"
   role = aws_iam_role.github_actions.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:*",
-          "cloudfront:*",
-          "lambda:*",
-          "dynamodb:*",
-          "apigateway:*",
-          "execute-api:*",
-          "iam:GetRole",
-          "iam:PassRole",
-          "iam:CreateRole",
-          "iam:DeleteRole",
-          "iam:AttachRolePolicy",
-          "iam:DetachRolePolicy",
-          "iam:PutRolePolicy",
-          "iam:DeleteRolePolicy",
-          "iam:GetRolePolicy",
-          "iam:ListRolePolicies",
-          "iam:ListAttachedRolePolicies",
-          "iam:TagRole",
-          "iam:UntagRole",
-          "logs:*",
-          "acm:*"
-        ]
-        Resource = "*"
-      },
       {
         Effect = "Allow"
         Action = [
@@ -107,67 +80,281 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         ]
         Resource = "arn:aws:s3:::${var.terraform_state_bucket}"
       },
+    ]
+  })
+}
+
+# DynamoDB - only snakes-and-ladders tables
+resource "aws_iam_role_policy" "dynamodb" {
+  name = "dynamodb-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
       {
         Effect = "Allow"
         Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:DeleteItem"
+          "dynamodb:CreateTable",
+          "dynamodb:DeleteTable",
+          "dynamodb:DescribeTable",
+          "dynamodb:DescribeContinuousBackups",
+          "dynamodb:DescribeTimeToLive",
+          "dynamodb:ListTagsOfResource",
+          "dynamodb:TagResource",
+          "dynamodb:UntagResource",
+          "dynamodb:UpdateTable",
+          "dynamodb:UpdateTimeToLive"
         ]
-        Resource = "arn:aws:dynamodb:${var.aws_region}:*:table/${var.terraform_lock_table}"
+        Resource = "arn:aws:dynamodb:${var.aws_region}:*:table/*snakes-and-ladders*"
       }
     ]
   })
 }
 
-# State bucket for Terraform
-resource "aws_s3_bucket" "terraform_state" {
-  bucket = var.terraform_state_bucket
+# S3 - only snakes-and-ladders buckets
+resource "aws_iam_role_policy" "s3" {
+  name = "s3-access"
+  role = aws_iam_role.github_actions.id
 
-  tags = {
-    Name    = "terraform-state"
-    Project = "snakes-and-ladders"
-  }
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:CreateBucket",
+          "s3:DeleteBucket",
+          "s3:GetBucketAcl",
+          "s3:GetBucketCORS",
+          "s3:GetBucketLocation",
+          "s3:GetBucketLogging",
+          "s3:GetBucketObjectLockConfiguration",
+          "s3:GetBucketOwnershipControls",
+          "s3:GetBucketPolicy",
+          "s3:GetBucketPublicAccessBlock",
+          "s3:GetBucketRequestPayment",
+          "s3:GetBucketTagging",
+          "s3:GetBucketVersioning",
+          "s3:GetBucketWebsite",
+          "s3:GetEncryptionConfiguration",
+          "s3:GetLifecycleConfiguration",
+          "s3:GetReplicationConfiguration",
+          "s3:ListBucket",
+          "s3:PutBucketAcl",
+          "s3:PutBucketCORS",
+          "s3:PutBucketLogging",
+          "s3:PutBucketObjectLockConfiguration",
+          "s3:PutBucketOwnershipControls",
+          "s3:PutBucketPolicy",
+          "s3:PutBucketPublicAccessBlock",
+          "s3:PutBucketRequestPayment",
+          "s3:PutBucketTagging",
+          "s3:PutBucketVersioning",
+          "s3:PutBucketWebsite",
+          "s3:PutEncryptionConfiguration",
+          "s3:PutLifecycleConfiguration",
+          "s3:DeleteBucketPolicy",
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:GetObjectAcl",
+          "s3:PutObjectAcl"
+        ]
+        Resource = [
+          "arn:aws:s3:::*snakes-and-ladders*",
+          "arn:aws:s3:::*snakes-and-ladders*/*"
+        ]
+      }
+    ]
+  })
 }
 
-resource "aws_s3_bucket_versioning" "terraform_state" {
-  bucket = aws_s3_bucket.terraform_state.id
-  versioning_configuration {
-    status = "Enabled"
-  }
+# Lambda - only snakes-and-ladders functions
+resource "aws_iam_role_policy" "lambda" {
+  name = "lambda-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:CreateFunction",
+          "lambda:DeleteFunction",
+          "lambda:GetFunction",
+          "lambda:GetFunctionCodeSigningConfig",
+          "lambda:GetFunctionConfiguration",
+          "lambda:ListVersionsByFunction",
+          "lambda:PublishVersion",
+          "lambda:UpdateFunctionCode",
+          "lambda:UpdateFunctionConfiguration",
+          "lambda:ListTags",
+          "lambda:TagResource",
+          "lambda:UntagResource",
+          "lambda:AddPermission",
+          "lambda:RemovePermission",
+          "lambda:GetPolicy"
+        ]
+        Resource = "arn:aws:lambda:${var.aws_region}:*:function:snakes-and-ladders-*"
+      }
+    ]
+  })
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
-  bucket = aws_s3_bucket.terraform_state.id
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
+# CloudWatch Logs - only snakes-and-ladders log groups
+resource "aws_iam_role_policy" "logs" {
+  name = "logs-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:DeleteLogGroup",
+          "logs:DescribeLogGroups",
+          "logs:ListTagsLogGroup",
+          "logs:ListTagsForResource",
+          "logs:PutRetentionPolicy",
+          "logs:DeleteRetentionPolicy",
+          "logs:TagLogGroup",
+          "logs:TagResource",
+          "logs:UntagLogGroup",
+          "logs:UntagResource"
+        ]
+        Resource = "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/snakes-and-ladders-*"
+      }
+    ]
+  })
 }
 
-resource "aws_s3_bucket_public_access_block" "terraform_state" {
-  bucket = aws_s3_bucket.terraform_state.id
+# API Gateway - full access (needed for WebSocket API management)
+resource "aws_iam_role_policy" "api_gateway" {
+  name = "api-gateway-access"
+  role = aws_iam_role.github_actions.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "apigateway:*"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "execute-api:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
 
-# DynamoDB table for state locking
-resource "aws_dynamodb_table" "terraform_lock" {
-  name         = var.terraform_lock_table
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "LockID"
+# CloudFront - full access (needed for distribution management)
+resource "aws_iam_role_policy" "cloudfront" {
+  name = "cloudfront-access"
+  role = aws_iam_role.github_actions.id
 
-  attribute {
-    name = "LockID"
-    type = "S"
-  }
-
-  tags = {
-    Name    = "terraform-state-lock"
-    Project = "snakes-and-ladders"
-  }
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudfront:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
+
+# Route53 - for DNS records
+resource "aws_iam_role_policy" "route53" {
+  name = "route53-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:GetHostedZone",
+          "route53:ListHostedZones",
+          "route53:ListResourceRecordSets",
+          "route53:ChangeResourceRecordSets",
+          "route53:GetChange"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# ACM - for certificate management (us-east-1 for CloudFront)
+resource "aws_iam_role_policy" "acm" {
+  name = "acm-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "acm:RequestCertificate",
+          "acm:DescribeCertificate",
+          "acm:ListCertificates",
+          "acm:DeleteCertificate",
+          "acm:ListTagsForCertificate",
+          "acm:AddTagsToCertificate",
+          "acm:RemoveTagsFromCertificate"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# IAM - scoped to roles with snakes-and-ladders prefix
+resource "aws_iam_role_policy" "iam" {
+  name = "iam-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole",
+          "iam:PassRole",
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:ListInstanceProfilesForRole",
+          "iam:TagRole",
+          "iam:UntagRole"
+        ]
+        Resource = "arn:aws:iam::*:role/snakes-and-ladders-*"
+      }
+    ]
+  })
+}
+
+
