@@ -140,31 +140,31 @@ resource "aws_dynamodb_table" "main" {
 
 data "archive_file" "ws_connect" {
   type        = "zip"
-  source_dir  = "${path.module}/../packages/backend/dist/ws-connect"
+  source_file = "${path.module}/../packages/backend/dist/ws-connect.js"
   output_path = "${path.module}/lambda-zips/ws-connect.zip"
 }
 
 data "archive_file" "ws_disconnect" {
   type        = "zip"
-  source_dir  = "${path.module}/../packages/backend/dist/ws-disconnect"
+  source_file = "${path.module}/../packages/backend/dist/ws-disconnect.js"
   output_path = "${path.module}/lambda-zips/ws-disconnect.zip"
 }
 
 data "archive_file" "ws_default" {
   type        = "zip"
-  source_dir  = "${path.module}/../packages/backend/dist/ws-default"
+  source_file = "${path.module}/../packages/backend/dist/ws-default.js"
   output_path = "${path.module}/lambda-zips/ws-default.zip"
 }
 
 data "archive_file" "http_create_game" {
   type        = "zip"
-  source_dir  = "${path.module}/../packages/backend/dist/http-create-game"
+  source_file = "${path.module}/../packages/backend/dist/http-create-game.js"
   output_path = "${path.module}/lambda-zips/http-create-game.zip"
 }
 
 data "archive_file" "http_get_game" {
   type        = "zip"
-  source_dir  = "${path.module}/../packages/backend/dist/http-get-game"
+  source_file = "${path.module}/../packages/backend/dist/http-get-game.js"
   output_path = "${path.module}/lambda-zips/http-get-game.zip"
 }
 
@@ -226,7 +226,7 @@ resource "aws_iam_role_policy" "ws_connect_dynamodb" {
 resource "aws_lambda_function" "ws_connect" {
   function_name = "${local.project}-${local.env}-ws-connect"
   role          = aws_iam_role.ws_connect.arn
-  handler       = "index.handler"
+  handler       = "ws-connect.handler"
   runtime       = "nodejs20.x"
   timeout       = 30
   memory_size   = 256
@@ -303,7 +303,7 @@ resource "aws_iam_role_policy" "ws_disconnect_dynamodb" {
 resource "aws_lambda_function" "ws_disconnect" {
   function_name = "${local.project}-${local.env}-ws-disconnect"
   role          = aws_iam_role.ws_disconnect.arn
-  handler       = "index.handler"
+  handler       = "ws-disconnect.handler"
   runtime       = "nodejs20.x"
   timeout       = 30
   memory_size   = 256
@@ -398,7 +398,7 @@ resource "aws_iam_role_policy" "ws_default_api_gateway" {
 resource "aws_lambda_function" "ws_default" {
   function_name = "${local.project}-${local.env}-ws-default"
   role          = aws_iam_role.ws_default.arn
-  handler       = "index.handler"
+  handler       = "ws-default.handler"
   runtime       = "nodejs20.x"
   timeout       = 30
   memory_size   = 256
@@ -476,7 +476,7 @@ resource "aws_iam_role_policy" "http_create_game_dynamodb" {
 resource "aws_lambda_function" "http_create_game" {
   function_name = "${local.project}-${local.env}-http-create-game"
   role          = aws_iam_role.http_create_game.arn
-  handler       = "index.handler"
+  handler       = "http-create-game.handler"
   runtime       = "nodejs20.x"
   timeout       = 30
   memory_size   = 256
@@ -553,7 +553,7 @@ resource "aws_iam_role_policy" "http_get_game_dynamodb" {
 resource "aws_lambda_function" "http_get_game" {
   function_name = "${local.project}-${local.env}-http-get-game"
   role          = aws_iam_role.http_get_game.arn
-  handler       = "index.handler"
+  handler       = "http-get-game.handler"
   runtime       = "nodejs20.x"
   timeout       = 30
   memory_size   = 256
