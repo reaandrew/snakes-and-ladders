@@ -140,6 +140,7 @@ resource "aws_iam_role_policy" "s3" {
           "s3:GetEncryptionConfiguration",
           "s3:GetLifecycleConfiguration",
           "s3:GetReplicationConfiguration",
+          "s3:GetAccelerateConfiguration",
           "s3:ListBucket",
           "s3:PutBucketAcl",
           "s3:PutBucketCORS",
@@ -214,9 +215,15 @@ resource "aws_iam_role_policy" "logs" {
       {
         Effect = "Allow"
         Action = [
+          "logs:DescribeLogGroups"
+        ]
+        Resource = "arn:aws:logs:${var.aws_region}:*:log-group:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "logs:CreateLogGroup",
           "logs:DeleteLogGroup",
-          "logs:DescribeLogGroups",
           "logs:ListTagsLogGroup",
           "logs:ListTagsForResource",
           "logs:PutRetentionPolicy",
