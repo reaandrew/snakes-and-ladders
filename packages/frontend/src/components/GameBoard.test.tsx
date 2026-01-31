@@ -275,7 +275,8 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      expect(screen.getByText('Test Player wins!')).toBeInTheDocument();
+      // Winner message appears in both desktop and mobile views
+      expect(screen.getAllByText('Test Player wins!').length).toBeGreaterThan(0);
     });
 
     it('shows correct winner name', () => {
@@ -294,7 +295,8 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      expect(screen.getByText('Bob wins!')).toBeInTheDocument();
+      // Winner message appears in both desktop and mobile views
+      expect(screen.getAllByText('Bob wins!').length).toBeGreaterThan(0);
     });
 
     it('hides Roll Dice button when there is a winner', () => {

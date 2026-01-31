@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 
 import { useGame } from '../contexts/GameContext';
 
@@ -17,13 +17,130 @@ function getCellCoordinates(cellNumber: number, cellSize: number, boardSize: num
   };
 }
 
+// Dice animation component
+function DiceRoller({
+  onRoll,
+  disabled,
+  lastRoll,
+}: {
+  onRoll: () => void;
+  disabled: boolean;
+  lastRoll: number | null;
+}) {
+  const [isRolling, setIsRolling] = useState(false);
+  const [displayValue, setDisplayValue] = useState<number | null>(lastRoll);
+
+  useEffect(() => {
+    if (lastRoll !== null && lastRoll !== displayValue) {
+      setIsRolling(true);
+      // Animate through random numbers
+      let count = 0;
+      const interval = setInterval(() => {
+        setDisplayValue(Math.floor(Math.random() * 6) + 1);
+        count++;
+        if (count >= 10) {
+          clearInterval(interval);
+          setDisplayValue(lastRoll);
+          setIsRolling(false);
+        }
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [lastRoll, displayValue]);
+
+  const diceDots: Record<number, JSX.Element> = {
+    1: (
+      <div className="flex h-full items-center justify-center">
+        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+      </div>
+    ),
+    2: (
+      <div className="flex h-full flex-col justify-between p-2">
+        <div className="h-3 w-3 self-start rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+      </div>
+    ),
+    3: (
+      <div className="flex h-full flex-col justify-between p-2">
+        <div className="h-3 w-3 self-start rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 self-center rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+      </div>
+    ),
+    4: (
+      <div className="grid h-full grid-cols-2 gap-1 p-2">
+        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+      </div>
+    ),
+    5: (
+      <div className="grid h-full grid-cols-2 gap-1 p-2">
+        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="col-span-2 h-3 w-3 justify-self-center rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+      </div>
+    ),
+    6: (
+      <div className="grid h-full grid-cols-2 gap-1 p-2">
+        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
+      </div>
+    ),
+  };
+
+  return (
+    <button
+      onClick={onRoll}
+      disabled={disabled || isRolling}
+      className={`
+        relative h-16 w-16 rounded-xl bg-white shadow-lg
+        transition-all duration-200 sm:h-20 sm:w-20
+        ${isRolling ? 'animate-bounce' : ''}
+        ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:scale-105 hover:shadow-xl active:scale-95'}
+      `}
+      aria-label="Roll dice"
+    >
+      {displayValue ? (
+        diceDots[displayValue]
+      ) : (
+        <div className="text-2xl font-bold text-slate-400">?</div>
+      )}
+    </button>
+  );
+}
+
 export function GameBoard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { game, players, currentPlayerId, rollDice, lastMove } = useGame();
   const board = game?.board;
+  const [canvasSize, setCanvasSize] = useState(500);
 
   const currentPlayer = players.find((p) => p.id === currentPlayerId);
   const winner = game?.winnerId ? players.find((p) => p.id === game.winnerId) : null;
+
+  // Responsive canvas sizing
+  const updateCanvasSize = useCallback(() => {
+    if (containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth - 32; // padding
+      const maxSize = Math.min(containerWidth, 500);
+      setCanvasSize(Math.max(280, maxSize)); // minimum 280px for playability
+    }
+  }, []);
+
+  useEffect(() => {
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, [updateCanvasSize]);
 
   // Simple canvas-based board rendering (placeholder for WebGL)
   useEffect(() => {
@@ -33,10 +150,10 @@ export function GameBoard() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const cellSize = 50;
     const boardSize = 10;
-    const width = cellSize * boardSize;
-    const height = cellSize * boardSize;
+    const cellSize = canvasSize / boardSize;
+    const width = canvasSize;
+    const height = canvasSize;
 
     canvas.width = width;
     canvas.height = height;
@@ -58,11 +175,12 @@ export function GameBoard() {
         ctx.fillStyle = (row + col) % 2 === 0 ? '#374151' : '#4B5563';
         ctx.fillRect(x, y, cellSize, cellSize);
 
-        // Cell number
+        // Cell number (responsive font size)
         ctx.fillStyle = '#9CA3AF';
-        ctx.font = '12px sans-serif';
+        const fontSize = Math.max(10, cellSize * 0.24);
+        ctx.font = `${fontSize}px sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(cellNumber.toString(), x + cellSize / 2, y + 15);
+        ctx.fillText(cellNumber.toString(), x + cellSize / 2, y + fontSize + 2);
       }
     }
 
@@ -72,18 +190,22 @@ export function GameBoard() {
         const startCoords = getCellCoordinates(item.start, cellSize, boardSize);
         const endCoords = getCellCoordinates(item.end, cellSize, boardSize);
 
+        // Scale factors for responsive drawing
+        const lineScale = cellSize / 50;
+
         if (item.type === 'ladder') {
           // Draw ladder as two parallel lines with rungs
           ctx.strokeStyle = 'rgba(34, 197, 94, 0.8)'; // Green
-          ctx.lineWidth = 3;
+          ctx.lineWidth = Math.max(2, 3 * lineScale);
           ctx.lineCap = 'round';
 
           // Calculate perpendicular offset for parallel rails
           const dx = endCoords.x - startCoords.x;
           const dy = endCoords.y - startCoords.y;
           const length = Math.sqrt(dx * dx + dy * dy);
-          const perpX = (-dy / length) * 8;
-          const perpY = (dx / length) * 8;
+          const railOffset = 8 * lineScale;
+          const perpX = (-dy / length) * railOffset;
+          const perpY = (dx / length) * railOffset;
 
           // Left rail
           ctx.beginPath();
@@ -98,8 +220,8 @@ export function GameBoard() {
           ctx.stroke();
 
           // Draw rungs
-          ctx.lineWidth = 2;
-          const numRungs = Math.max(3, Math.floor(length / 30));
+          ctx.lineWidth = Math.max(1, 2 * lineScale);
+          const numRungs = Math.max(3, Math.floor(length / (30 * lineScale)));
           for (let i = 1; i < numRungs; i++) {
             const t = i / numRungs;
             const rungX = startCoords.x + dx * t;
@@ -111,17 +233,18 @@ export function GameBoard() {
           }
 
           // Draw end markers (circles)
+          const markerSize = Math.max(4, 6 * lineScale);
           ctx.fillStyle = 'rgba(34, 197, 94, 0.9)';
           ctx.beginPath();
-          ctx.arc(startCoords.x, startCoords.y, 6, 0, Math.PI * 2);
+          ctx.arc(startCoords.x, startCoords.y, markerSize, 0, Math.PI * 2);
           ctx.fill();
           ctx.beginPath();
-          ctx.arc(endCoords.x, endCoords.y, 6, 0, Math.PI * 2);
+          ctx.arc(endCoords.x, endCoords.y, markerSize, 0, Math.PI * 2);
           ctx.fill();
         } else {
           // Draw snake as a curved wavy line
           ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // Red
-          ctx.lineWidth = 6;
+          ctx.lineWidth = Math.max(3, 6 * lineScale);
           ctx.lineCap = 'round';
 
           const dx = endCoords.x - startCoords.x;
@@ -133,7 +256,7 @@ export function GameBoard() {
           ctx.moveTo(startCoords.x, startCoords.y);
 
           const segments = 4;
-          const waveAmplitude = Math.min(20, length / 8);
+          const waveAmplitude = Math.min(20 * lineScale, length / 8);
           for (let i = 1; i <= segments; i++) {
             const t = i / segments;
             const prevT = (i - 0.5) / segments;
@@ -154,7 +277,7 @@ export function GameBoard() {
 
           // Draw snake head (triangle at start - snakes go from high to low)
           ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
-          const headSize = 8;
+          const headSize = Math.max(5, 8 * lineScale);
           const angle = Math.atan2(dy, dx);
           ctx.beginPath();
           ctx.moveTo(
@@ -174,13 +297,15 @@ export function GameBoard() {
 
           // Draw snake tail (small circle at end)
           ctx.beginPath();
-          ctx.arc(endCoords.x, endCoords.y, 4, 0, Math.PI * 2);
+          ctx.arc(endCoords.x, endCoords.y, Math.max(2, 4 * lineScale), 0, Math.PI * 2);
           ctx.fill();
         }
       });
     }
 
     // Draw players
+    const playerRadius = Math.max(8, cellSize * 0.24);
+    const playerOffset = Math.max(10, cellSize * 0.3);
     players.forEach((player, index) => {
       if (player.position > 0) {
         const pos = player.position;
@@ -188,38 +313,46 @@ export function GameBoard() {
         const col = row % 2 === 0 ? (pos - 1) % boardSize : boardSize - 1 - ((pos - 1) % boardSize);
 
         const x = col * cellSize + cellSize / 2;
-        const y = (boardSize - 1 - row) * cellSize + cellSize / 2 + 10;
+        const y = (boardSize - 1 - row) * cellSize + cellSize / 2 + cellSize * 0.2;
 
         // Offset multiple players on same cell
-        const offsetX = (index % 2) * 15 - 7;
-        const offsetY = Math.floor(index / 2) * 15 - 7;
+        const offsetX = (index % 2) * playerOffset - playerOffset / 2;
+        const offsetY = Math.floor(index / 2) * playerOffset - playerOffset / 2;
 
         ctx.beginPath();
-        ctx.arc(x + offsetX, y + offsetY, 12, 0, Math.PI * 2);
+        ctx.arc(x + offsetX, y + offsetY, playerRadius, 0, Math.PI * 2);
         ctx.fillStyle = player.color;
         ctx.fill();
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = Math.max(1, 2 * (cellSize / 50));
         ctx.stroke();
       }
     });
-  }, [players, board]);
+  }, [players, board, canvasSize]);
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
-      {/* Game Board */}
-      <div className="flex flex-1 items-center justify-center p-4">
-        <div className="rounded-xl bg-slate-800/50 p-4 backdrop-blur">
+    <div className="flex min-h-[100dvh] flex-col lg:flex-row">
+      {/* Mobile header with game info */}
+      <div className="flex items-center justify-between bg-slate-800/50 px-4 py-2 lg:hidden">
+        <span className="font-mono text-lg font-bold text-game-primary">{game?.code}</span>
+        <span className="text-sm text-slate-400">
+          Position: <span className="font-bold text-white">{currentPlayer?.position ?? 0}</span>
+        </span>
+      </div>
+
+      {/* Game Board - centered and responsive */}
+      <div ref={containerRef} className="flex flex-1 items-center justify-center p-4">
+        <div className="rounded-xl bg-slate-800/50 p-2 backdrop-blur sm:p-4">
           <canvas
             ref={canvasRef}
             className="rounded-lg"
-            style={{ width: '500px', height: '500px' }}
+            style={{ width: `${canvasSize}px`, height: `${canvasSize}px` }}
           />
         </div>
       </div>
 
-      {/* Sidebar */}
-      <div className="w-full bg-slate-800/30 p-4 lg:w-80">
+      {/* Desktop Sidebar */}
+      <div className="hidden w-80 bg-slate-800/30 p-4 lg:block">
         <h2 className="mb-4 text-xl font-bold text-white">{game?.code && `Game: ${game.code}`}</h2>
 
         <PlayerList players={players} currentPlayerId={currentPlayerId} />
@@ -245,7 +378,7 @@ export function GameBoard() {
           </div>
         )}
 
-        {/* Game Status */}
+        {/* Game Status - Desktop */}
         {winner ? (
           <div className="mt-4 rounded-xl bg-game-secondary/20 p-4 text-center">
             <p className="text-lg font-bold text-game-secondary">{winner.name} wins!</p>
@@ -266,6 +399,64 @@ export function GameBoard() {
           </div>
         )}
       </div>
+
+      {/* Mobile Bottom Bar with Dice */}
+      <div className="fixed inset-x-0 bottom-0 flex items-center justify-between bg-slate-900/95 p-3 backdrop-blur lg:hidden">
+        {/* Player avatars */}
+        <div className="flex -space-x-2">
+          {players.slice(0, 4).map((player) => (
+            <div
+              key={player.id}
+              className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-900 text-xs font-bold text-white"
+              style={{ backgroundColor: player.color }}
+              title={player.name}
+            >
+              {player.name.charAt(0).toUpperCase()}
+            </div>
+          ))}
+          {players.length > 4 && (
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-900 bg-slate-700 text-xs text-white">
+              +{players.length - 4}
+            </div>
+          )}
+        </div>
+
+        {/* Last move or winner */}
+        <div className="flex-1 px-3 text-center">
+          {winner ? (
+            <p className="text-sm font-bold text-game-secondary">{winner.name} wins!</p>
+          ) : lastMove ? (
+            <p className="text-xs text-slate-400">
+              {players.find((p) => p.id === lastMove.playerId)?.name}:{' '}
+              <span className="text-white">{lastMove.previousPosition}</span>
+              {' → '}
+              <span className="text-white">{lastMove.newPosition}</span>
+              {lastMove.effect && (
+                <span
+                  className={lastMove.effect.type === 'ladder' ? 'text-green-400' : 'text-red-400'}
+                >
+                  {' '}
+                  {lastMove.effect.type === 'ladder' ? '↑' : '↓'}
+                </span>
+              )}
+            </p>
+          ) : (
+            <p className="text-xs text-slate-500">Tap dice to roll</p>
+          )}
+        </div>
+
+        {/* Dice roller */}
+        {!winner && (
+          <DiceRoller
+            onRoll={rollDice}
+            disabled={game?.status !== 'playing'}
+            lastRoll={lastMove?.diceRoll ?? null}
+          />
+        )}
+      </div>
+
+      {/* Spacer for fixed bottom bar on mobile */}
+      <div className="h-24 lg:hidden" />
     </div>
   );
 }
