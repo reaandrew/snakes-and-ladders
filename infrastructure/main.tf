@@ -20,6 +20,13 @@ provider "aws" {
   region = var.aws_region
 }
 
+# us-east-1 provider - needed to destroy orphaned ACM resources from state
+# Can be removed after next successful deploy
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
