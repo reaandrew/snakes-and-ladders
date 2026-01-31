@@ -49,7 +49,6 @@ jobs:
   security-scan:
     name: Security Scan (Semgrep)
     runs-on: ubuntu-latest
-    continue-on-error: true
     container:
       image: semgrep/semgrep
     steps:
@@ -180,7 +179,6 @@ jobs:
   sonarqube:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: [test-frontend, test-backend, test-shared]
     steps:
       - uses: actions/checkout@v4
@@ -271,7 +269,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [build, terraform-validate, security-scan]
+    needs: [build, terraform-validate, security-scan, sonarqube, storybook]
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -314,7 +312,7 @@ jobs:
         run: |
           BUCKET=$(terraform output -raw frontend_bucket)
           DIST_ID=$(terraform output -raw cloudfront_distribution_id)
-          aws s3 sync packages/frontend/dist/ s3://$BUCKET --delete
+          aws s3 sync ../packages/frontend/dist/ s3://$BUCKET --delete
           aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
         working-directory: infrastructure
 
