@@ -36,4 +36,5 @@ output "cloudfront_domain_name" {
 output "acm_certificate_arn" {
   description = "ACM certificate ARN"
   value       = local.frontend_cert_arn
+  sensitive   = true
 }
