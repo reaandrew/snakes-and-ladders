@@ -1,3 +1,9 @@
+## [1.1.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.0.1...v1.1.0) (2026-01-31)
+
+### Features
+
+* **ui:** responsive game board with mobile-first dice roller ([4ea2b22](https://github.com/reaandrew/snakes-and-ladders/commit/4ea2b22fe6317845133fdbbc6d116643f6beaff3))
+
 ## [1.0.1](https://github.com/reaandrew/snakes-and-ladders/compare/v1.0.0...v1.0.1) (2026-01-31)
 
 ### Bug Fixes
