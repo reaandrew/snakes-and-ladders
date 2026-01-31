@@ -120,6 +120,21 @@ export class GameService {
 
     const existingPlayers = await this.repository.getGamePlayers(gameCode);
 
+    // Check if player with same name already exists (e.g., creator reconnecting)
+    const existingPlayer = existingPlayers.find(
+      (p) => p.name?.toLowerCase() === playerName.toLowerCase()
+    );
+    if (existingPlayer) {
+      return {
+        success: true,
+        data: {
+          game: this.entityToGame(gameEntity),
+          player: this.entityToPlayer(existingPlayer),
+          players: existingPlayers.map((e) => this.entityToPlayer(e)),
+        },
+      };
+    }
+
     if (existingPlayers.length >= this.playerColors.length) {
       return {
         success: false,
