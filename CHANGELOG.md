@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/reaandrew/snakes-and-ladders/compare/v1.0.0...v1.0.1) (2026-01-31)
+
+### Bug Fixes
+
+* prevent duplicate player when creator joins via WebSocket ([7d01a7b](https://github.com/reaandrew/snakes-and-ladders/commit/7d01a7baf9fd9f7e0fb8e59b2440504b9c873ec0))
+
 ## 1.0.0 (2026-01-31)
 
 ### ⚠ BREAKING CHANGES
