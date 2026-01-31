@@ -13,6 +13,12 @@ provider "aws" {
   region = var.aws_region
 }
 
+# us-east-1 provider for ACM certificates (required for CloudFront)
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 # GitHub OIDC Provider
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
@@ -365,4 +371,87 @@ resource "aws_iam_role_policy" "iam" {
   })
 }
 
+# SSM - for reading certificate ARN
+resource "aws_iam_role_policy" "ssm" {
+  name = "ssm-access"
+  role = aws_iam_role.github_actions.id
 
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = "arn:aws:ssm:*:*:parameter/snakes-and-ladders/*"
+      }
+    ]
+  })
+}
+
+# =============================================================================
+# ACM Certificate (us-east-1 for CloudFront)
+# Created here and validated locally to avoid CI token timeout issues
+# =============================================================================
+
+data "aws_route53_zone" "main" {
+  name         = var.route53_zone_name
+  private_zone = false
+}
+
+resource "aws_acm_certificate" "frontend" {
+  provider          = aws.us_east_1
+  domain_name       = var.domain_name
+  validation_method = "DNS"
+
+  tags = {
+    Name    = "snakes-and-ladders-frontend-cert"
+    Project = "snakes-and-ladders"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.frontend.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.main.zone_id
+}
+
+resource "aws_acm_certificate_validation" "frontend" {
+  provider                = aws.us_east_1
+  certificate_arn         = aws_acm_certificate.frontend.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
+# Store certificate ARN in SSM for CI to reference
+resource "aws_ssm_parameter" "frontend_cert_arn" {
+  name        = "/snakes-and-ladders/certificates/frontend_cert_arn"
+  description = "ARN of the validated frontend CloudFront certificate (us-east-1)"
+  type        = "String"
+  value       = aws_acm_certificate_validation.frontend.certificate_arn
+
+  tags = {
+    Project = "snakes-and-ladders"
+  }
+}
+
+output "frontend_cert_arn" {
+  value       = aws_acm_certificate_validation.frontend.certificate_arn
+  description = "ARN of the validated frontend certificate for CloudFront (us-east-1)"
+}

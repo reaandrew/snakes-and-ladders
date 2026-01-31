@@ -22,3 +22,15 @@ variable "terraform_state_bucket" {
   default     = "snakes-and-ladders-terraform-state"
 }
 
+variable "domain_name" {
+  description = "Domain name for the frontend"
+  type        = string
+  default     = "snakes.techar.ch"
+}
+
+variable "route53_zone_name" {
+  description = "Route53 hosted zone name"
+  type        = string
+  default     = "techar.ch"
+}
+

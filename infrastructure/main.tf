@@ -20,12 +20,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# us-east-1 provider for ACM certificates (required for CloudFront)
-provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
-}
-
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
@@ -49,44 +43,15 @@ data "aws_route53_zone" "main" {
 }
 
 # =============================================================================
-# ACM Certificate (us-east-1 for CloudFront)
+# ACM Certificate (from SSM - created in aws_setup)
 # =============================================================================
 
-resource "aws_acm_certificate" "frontend" {
-  provider          = aws.us_east_1
-  domain_name       = var.domain_name
-  validation_method = "DNS"
-
-  tags = merge(local.tags, {
-    Name = "${local.project}-frontend-cert"
-  })
-
-  lifecycle {
-    create_before_destroy = true
-  }
+data "aws_ssm_parameter" "frontend_cert_arn" {
+  name = "/snakes-and-ladders/certificates/frontend_cert_arn"
 }
 
-resource "aws_route53_record" "cert_validation" {
-  for_each = {
-    for dvo in aws_acm_certificate.frontend.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
-    }
-  }
-
-  allow_overwrite = true
-  name            = each.value.name
-  records         = [each.value.record]
-  ttl             = 60
-  type            = each.value.type
-  zone_id         = data.aws_route53_zone.main.zone_id
-}
-
-resource "aws_acm_certificate_validation" "frontend" {
-  provider                = aws.us_east_1
-  certificate_arn         = aws_acm_certificate.frontend.arn
-  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+locals {
+  frontend_cert_arn = data.aws_ssm_parameter.frontend_cert_arn.value
 }
 
 # =============================================================================
@@ -828,14 +793,12 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate_validation.frontend.certificate_arn
+    acm_certificate_arn      = local.frontend_cert_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = local.tags
-
-  depends_on = [aws_acm_certificate_validation.frontend]
 }
 
 # S3 bucket policy for CloudFront

@@ -35,5 +35,5 @@ output "cloudfront_domain_name" {
 
 output "acm_certificate_arn" {
   description = "ACM certificate ARN"
-  value       = aws_acm_certificate.frontend.arn
+  value       = local.frontend_cert_arn
 }
