@@ -285,15 +285,19 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: eu-west-2
 
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: '1.7.0'
-
-      - name: Download Frontend Build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: packages/frontend/dist/
+          terraform_wrapper: false
 
       - name: Download Backend Build
         uses: actions/download-artifact@v4
@@ -312,6 +316,15 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
         working-directory: infrastructure
+
+      - name: Build Frontend with API URLs
+        run: |
+          pnpm install --frozen-lockfile
+          export VITE_API_URL=$(cd infrastructure && terraform output -raw http_api_url)
+          export VITE_WS_URL=$(cd infrastructure && terraform output -raw websocket_url)
+          echo "Building frontend with API_URL=$VITE_API_URL, WS_URL=$VITE_WS_URL"
+          pnpm --filter @snakes-and-ladders/shared build
+          pnpm --filter @snakes-and-ladders/frontend build
 
       - name: Deploy Frontend to S3
         run: |
