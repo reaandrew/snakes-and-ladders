@@ -356,6 +356,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Build Shared (for pre-commit hooks)
+        run: pnpm --filter @snakes-and-ladders/shared build
+
       - name: Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

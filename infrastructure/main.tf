@@ -381,7 +381,7 @@ resource "aws_lambda_function" "ws_default" {
   environment {
     variables = {
       TABLE_NAME         = aws_dynamodb_table.main.name
-      WEBSOCKET_ENDPOINT = "${aws_apigatewayv2_api.websocket.api_endpoint}/prod"
+      WEBSOCKET_ENDPOINT = "${replace(aws_apigatewayv2_api.websocket.api_endpoint, "wss://", "https://")}/prod"
     }
   }
 
