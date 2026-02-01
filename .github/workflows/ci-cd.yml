@@ -278,19 +278,19 @@ jobs:
           fetch-depth: 0
 
       - name: Download Frontend Coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend-coverage
           path: packages/frontend/coverage/
 
       - name: Download Backend Coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: backend-coverage
           path: packages/backend/coverage/
 
       - name: Download Shared Coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: shared-coverage
           path: packages/shared/coverage/
@@ -425,7 +425,7 @@ jobs:
           terraform_wrapper: false
 
       - name: Download Backend Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: backend-dist
           path: packages/backend/dist/
