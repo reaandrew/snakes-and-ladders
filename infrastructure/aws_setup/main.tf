@@ -449,6 +449,10 @@ resource "aws_iam_role_policy" "kms" {
         Action = [
           "kms:CreateKey",
           "kms:CreateGrant",
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:GenerateDataKey",
+          "kms:GenerateDataKeyWithoutPlaintext",
           "kms:DescribeKey",
           "kms:GetKeyPolicy",
           "kms:GetKeyRotationStatus",
