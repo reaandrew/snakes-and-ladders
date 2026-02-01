@@ -49,3 +49,11 @@ export type {
 } from './types/dynamodb.types.js';
 
 export { Keys } from './types/dynamodb.types.js';
+
+// Admin types
+export type {
+  AdminGameSummary,
+  AdminGamesResponse,
+  AdminPlayerDetail,
+  AdminGameDetailResponse,
+} from './types/admin.types.js';

@@ -5,17 +5,25 @@ import {
   PLAYER_COLORS,
   type Game,
   type Player,
+  type Move,
   type ClientMessage,
   type ServerMessage,
+  type AdminGameSummary,
+  type AdminGamesResponse,
+  type AdminPlayerDetail,
+  type AdminGameDetailResponse,
 } from '@snakes-and-ladders/shared';
 import { nanoid } from 'nanoid';
 import { WebSocketServer, WebSocket } from 'ws';
+
+import { validateAdminAuth } from '../lib/auth/admin-auth.js';
 
 // In-memory storage
 const games = new Map<string, Game>();
 const players = new Map<string, Player[]>();
 const connections = new Map<WebSocket, { gameCode?: string; playerId?: string }>();
 const gameConnections = new Map<string, Set<WebSocket>>();
+const moves = new Map<string, Move[]>();
 
 function generateGameCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -152,6 +160,80 @@ const httpServer = createServer((req, res) => {
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ game, players: players.get(code) || [] }));
+    return;
+  }
+
+  // GET /admin/games - List all games (requires auth)
+  if (req.method === 'GET' && url.pathname === '/admin/games') {
+    if (!validateAdminAuth(req.headers.authorization)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+
+    const allGames: AdminGameSummary[] = [];
+    for (const [code, game] of games) {
+      const gamePlayers = players.get(code) || [];
+      const sortedPlayers = [...gamePlayers].sort((a, b) => b.position - a.position);
+      const leader = sortedPlayers[0];
+
+      allGames.push({
+        code,
+        status: game.status,
+        playerCount: gamePlayers.length,
+        createdAt: game.createdAt,
+        leaderName: leader?.name ?? null,
+        leaderPosition: leader?.position ?? 0,
+      });
+    }
+
+    // Sort by createdAt descending
+    allGames.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const response: AdminGamesResponse = { games: allGames };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(response));
+    return;
+  }
+
+  // GET /admin/games/:code - Get game detail (requires auth)
+  const adminGameMatch = url.pathname.match(/^\/admin\/games\/([A-Z0-9]+)$/);
+  if (req.method === 'GET' && adminGameMatch) {
+    if (!validateAdminAuth(req.headers.authorization)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+
+    const code = adminGameMatch[1];
+    const game = games.get(code);
+
+    if (!game) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Game not found' }));
+      return;
+    }
+
+    const gamePlayers = players.get(code) || [];
+    const gameMoves = moves.get(code) || [];
+
+    // Sort players by position descending to calculate rank
+    const sortedPlayers = [...gamePlayers].sort((a, b) => b.position - a.position);
+
+    const playersWithRank: AdminPlayerDetail[] = sortedPlayers.map((player, index) => ({
+      ...player,
+      rank: index + 1,
+      distanceToWin: game.board.size - player.position,
+    }));
+
+    const response: AdminGameDetailResponse = {
+      game,
+      players: playersWithRank,
+      moves: gameMoves.slice().reverse().slice(0, 50), // Most recent 50 moves
+    };
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(response));
     return;
   }
 
@@ -359,6 +441,23 @@ function handleRollDice(ws: WebSocket, gameCode: string, playerId: string) {
 
   console.log(`[WS] ${player.name} rolled ${dice}: ${previousPosition} -> ${result.newPosition}`);
 
+  // Store the move
+  const move: Move = {
+    id: nanoid(),
+    gameCode,
+    playerId,
+    playerName: player.name,
+    playerColor: player.color,
+    diceRoll: dice,
+    previousPosition,
+    newPosition: result.newPosition,
+    effect: result.effect as { type: 'snake' | 'ladder'; from: number; to: number } | undefined,
+    timestamp: new Date().toISOString(),
+  };
+  const gameMoves = moves.get(gameCode) || [];
+  gameMoves.push(move);
+  moves.set(gameCode, gameMoves);
+
   broadcast(gameCode, {
     type: 'playerMoved',
     playerId,
@@ -399,6 +498,8 @@ httpServer.listen(HTTP_PORT, () => {
 ║  Endpoints:                                                ║
 ║    POST /games          - Create a new game                ║
 ║    GET  /games/:code    - Get game state                   ║
+║    GET  /admin/games    - List all games (Basic Auth)      ║
+║    GET  /admin/games/:code - Game detail (Basic Auth)      ║
 ║                                                            ║
 ║  WebSocket Actions:                                        ║
 ║    joinGame, startGame, rollDice, ping                     ║

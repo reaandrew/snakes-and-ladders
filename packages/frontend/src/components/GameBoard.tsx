@@ -319,14 +319,7 @@ export function GameBoard() {
           </div>
         )}
 
-        {/* Move History */}
-        {game?.status === 'playing' && (
-          <div className="mt-4">
-            <MoveHistory moves={moves} maxHeight="180px" />
-          </div>
-        )}
-
-        {/* Game Status - Desktop */}
+        {/* Game Status - Desktop (Dice above Move History) */}
         {winner ? (
           <div className="mt-4 rounded-xl bg-game-secondary/20 p-4 text-center">
             <p className="text-lg font-bold text-game-secondary">{winner.name} wins!</p>
@@ -359,6 +352,13 @@ export function GameBoard() {
                 Your position: {currentPlayer?.position ?? 0}
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Move History */}
+        {game?.status === 'playing' && (
+          <div className="mt-4">
+            <MoveHistory moves={moves} maxHeight="180px" />
           </div>
         )}
       </div>

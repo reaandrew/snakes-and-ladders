@@ -244,4 +244,18 @@ export class Repository {
     );
     return (result.Items as MoveEntity[]) ?? [];
   }
+
+  // Admin operations
+  async getAllGames(): Promise<GameEntity[]> {
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'GSI1PK = :pk',
+        ExpressionAttributeValues: { ':pk': 'GAMES' },
+        ScanIndexForward: false,
+      })
+    );
+    return (result.Items as GameEntity[]) ?? [];
+  }
 }
