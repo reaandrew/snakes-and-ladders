@@ -22,16 +22,6 @@ interface MobileStatsSheetProps {
   moves: MoveHistoryEntry[];
 }
 
-function getOrdinalSuffix(n: number): string {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
-}
-
-function formatOrdinal(n: number): string {
-  return `${n}${getOrdinalSuffix(n)}`;
-}
-
 export function MobileStatsSheet({
   isExpanded,
   onToggle,
@@ -50,44 +40,78 @@ export function MobileStatsSheet({
         />
       )}
 
-      {/* Sheet */}
+      {/* Dropdown Sheet from top */}
       <div
         className={`
-          fixed inset-x-0 bottom-24 z-50 rounded-t-2xl bg-slate-900/95 backdrop-blur
+          fixed inset-x-0 top-0 z-50 rounded-b-2xl bg-slate-900/95 shadow-2xl backdrop-blur
           transition-transform duration-300 ease-out
           lg:hidden
-          ${isExpanded ? 'translate-y-0' : 'translate-y-full'}
+          ${isExpanded ? 'translate-y-0' : '-translate-y-full'}
         `}
         role="dialog"
         aria-modal="true"
         aria-label="Game statistics"
       >
-        {/* Drag handle */}
+        {/* Header with close button */}
+        <div className="flex items-center justify-between border-b border-slate-700/50 px-4 py-3">
+          <h2 className="text-lg font-bold text-white">Game Stats</h2>
+          <button
+            onClick={onToggle}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700/50 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+            aria-label="Close menu"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
+          <PositionIndicator players={players} currentPlayerId={currentPlayerId} compact={false} />
+          <PlayerList players={players} currentPlayerId={currentPlayerId} />
+          <MoveHistory moves={moves} maxHeight="200px" />
+        </div>
+
+        {/* Bottom drag handle */}
         <button
           onClick={onToggle}
-          className="flex w-full items-center justify-center py-3"
+          className="flex w-full items-center justify-center py-2"
           aria-label="Close stats panel"
         >
           <div className="h-1 w-12 rounded-full bg-slate-600" />
         </button>
-
-        {/* Content */}
-        <div className="max-h-[60vh] space-y-4 overflow-y-auto px-4 pb-4">
-          <PositionIndicator players={players} currentPlayerId={currentPlayerId} compact={false} />
-          <PlayerList players={players} currentPlayerId={currentPlayerId} />
-          <MoveHistory moves={moves} maxHeight="150px" />
-        </div>
       </div>
-
-      {/* Collapsed tap target in header - rendered by parent component */}
     </>
   );
 }
 
+// Keep for backwards compatibility but no longer used
 interface MobileStatsHeaderProps {
   players: Player[];
   currentPlayerId: string | null;
   onTap: () => void;
+}
+
+function getOrdinalSuffix(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+function formatOrdinal(n: number): string {
+  return `${n}${getOrdinalSuffix(n)}`;
 }
 
 export function MobileStatsHeader({ players, currentPlayerId, onTap }: MobileStatsHeaderProps) {

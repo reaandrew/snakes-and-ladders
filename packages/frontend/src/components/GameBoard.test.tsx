@@ -140,10 +140,11 @@ describe('GameBoard', () => {
       expect(canvas).toBeInTheDocument();
     });
 
-    it('renders Roll Dice button', () => {
+    it('renders dice component', () => {
       render(<GameBoard />);
 
-      expect(screen.getByRole('button', { name: 'Roll Dice' })).toBeInTheDocument();
+      // Dice is now rendered as a 3D component with "Roll dice" aria-label
+      expect(screen.getAllByRole('button', { name: /roll dice/i }).length).toBeGreaterThan(0);
     });
 
     it('shows current player position', () => {
@@ -185,11 +186,13 @@ describe('GameBoard', () => {
     });
   });
 
-  describe('Roll Dice Button', () => {
-    it('calls rollDice when clicked', () => {
+  describe('Dice Component', () => {
+    it('calls rollDice when dice is clicked', () => {
       render(<GameBoard />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Roll Dice' }));
+      // Click the first dice button found
+      const diceButtons = screen.getAllByRole('button', { name: /roll dice/i });
+      fireEvent.click(diceButtons[0]);
 
       expect(rollDiceMock).toHaveBeenCalled();
     });
@@ -197,7 +200,8 @@ describe('GameBoard', () => {
     it('is enabled when game status is playing', () => {
       render(<GameBoard />);
 
-      expect(screen.getByRole('button', { name: 'Roll Dice' })).not.toBeDisabled();
+      const diceButtons = screen.getAllByRole('button', { name: /roll dice/i });
+      expect(diceButtons[0]).not.toBeDisabled();
     });
 
     it('is disabled when game status is not playing', () => {
@@ -213,10 +217,11 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      expect(screen.getByRole('button', { name: 'Roll Dice' })).toBeDisabled();
+      const diceButtons = screen.getAllByRole('button', { name: /roll dice/i });
+      expect(diceButtons[0]).toBeDisabled();
     });
 
-    it('is disabled when game status is finished', () => {
+    it('is not present when game is finished', () => {
       mockUseGame.mockReturnValue({
         game: createMockGame({ status: 'finished', winnerId: 'player-1' }),
         players: [createMockPlayer()],
@@ -229,8 +234,8 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      // Roll Dice button should not be present when there's a winner
-      expect(screen.queryByRole('button', { name: 'Roll Dice' })).not.toBeInTheDocument();
+      // Dice should not be present when there's a winner
+      expect(screen.queryByRole('button', { name: /roll dice/i })).not.toBeInTheDocument();
     });
   });
 
@@ -391,7 +396,7 @@ describe('GameBoard', () => {
       expect(screen.getAllByText('Bob wins!').length).toBeGreaterThan(0);
     });
 
-    it('hides Roll Dice button when there is a winner', () => {
+    it('hides dice when there is a winner', () => {
       mockUseGame.mockReturnValue({
         game: createMockGame({ status: 'finished', winnerId: 'player-1' }),
         players: [createMockPlayer()],
@@ -404,7 +409,7 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      expect(screen.queryByRole('button', { name: 'Roll Dice' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /roll dice/i })).not.toBeInTheDocument();
     });
   });
 
@@ -566,7 +571,7 @@ describe('GameBoard', () => {
   });
 
   describe('Mobile Stats Sheet', () => {
-    it('renders mobile stats header with tap for details', () => {
+    it('renders mobile menu button', () => {
       const players = [
         createMockPlayer({ id: 'player-1', name: 'Alice', position: 10 }),
         createMockPlayer({ id: 'player-2', name: 'Bob', position: 5 }),
@@ -584,10 +589,10 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      expect(screen.getByText('Tap for details')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Open game menu' })).toBeInTheDocument();
     });
 
-    it('opens mobile stats sheet when header is tapped', () => {
+    it('opens mobile stats sheet when menu is tapped', () => {
       const players = [
         createMockPlayer({ id: 'player-1', name: 'Alice', position: 10 }),
         createMockPlayer({ id: 'player-2', name: 'Bob', position: 5 }),
@@ -605,12 +610,12 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Open game statistics' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Open game menu' }));
 
       expect(screen.getByRole('dialog', { name: 'Game statistics' })).toBeInTheDocument();
     });
 
-    it('does not render mobile stats sheet when game is not playing', () => {
+    it('renders menu button even when game is not playing', () => {
       mockUseGame.mockReturnValue({
         game: createMockGame({ status: 'waiting' }),
         players: [createMockPlayer()],
@@ -623,7 +628,8 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      expect(screen.queryByText('Tap for details')).not.toBeInTheDocument();
+      // Menu button should still be present
+      expect(screen.getByRole('button', { name: 'Open game menu' })).toBeInTheDocument();
     });
   });
 

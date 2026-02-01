@@ -42,7 +42,7 @@ describe('MobileStatsSheet', () => {
       expect(screen.getByRole('dialog', { name: 'Game statistics' })).toBeInTheDocument();
     });
 
-    it('has translate-y-full class when collapsed', () => {
+    it('has -translate-y-full class when collapsed (slides up off screen)', () => {
       const { container } = render(
         <MobileStatsSheet
           isExpanded={false}
@@ -54,7 +54,7 @@ describe('MobileStatsSheet', () => {
       );
 
       const sheet = container.querySelector('[role="dialog"]');
-      expect(sheet).toHaveClass('translate-y-full');
+      expect(sheet).toHaveClass('-translate-y-full');
     });
 
     it('has translate-y-0 class when expanded', () => {
@@ -163,7 +163,7 @@ describe('MobileStatsSheet', () => {
         />
       );
 
-      fireEvent.click(screen.getByRole('button', { name: 'Close stats panel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Close menu' }));
 
       expect(onToggle).toHaveBeenCalledTimes(1);
     });

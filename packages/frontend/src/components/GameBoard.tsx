@@ -3,11 +3,10 @@ import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react'
 import { useGame } from '../contexts/GameContext';
 
 import { Dice3D } from './Dice3D';
-import { MobileStatsSheet, MobileStatsHeader } from './MobileStatsSheet';
+import { MobileStatsSheet } from './MobileStatsSheet';
 import { MoveHistory } from './MoveHistory';
 import { PlayerList } from './PlayerList';
 import { PositionIndicator } from './PositionIndicator';
-import { Button } from './ui/Button';
 import { WinnerModal } from './WinnerModal';
 
 // Lazy load ThreeDice for bundle optimization
@@ -218,9 +217,9 @@ export function GameBoard() {
       });
     }
 
-    // Draw players
-    const playerRadius = Math.max(8, cellSize * 0.24);
-    const playerOffset = Math.max(10, cellSize * 0.3);
+    // Draw players with numbers
+    const playerRadius = Math.max(10, cellSize * 0.28);
+    const playerOffset = Math.max(12, cellSize * 0.35);
     players.forEach((player, index) => {
       if (player.position > 0) {
         const pos = player.position;
@@ -234,33 +233,66 @@ export function GameBoard() {
         const offsetX = (index % 2) * playerOffset - playerOffset / 2;
         const offsetY = Math.floor(index / 2) * playerOffset - playerOffset / 2;
 
+        const playerX = x + offsetX;
+        const playerY = y + offsetY;
+
+        // Draw player circle
         ctx.beginPath();
-        ctx.arc(x + offsetX, y + offsetY, playerRadius, 0, Math.PI * 2);
+        ctx.arc(playerX, playerY, playerRadius, 0, Math.PI * 2);
         ctx.fillStyle = player.color;
         ctx.fill();
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = Math.max(1, 2 * (cellSize / 50));
+        ctx.lineWidth = Math.max(2, 3 * (cellSize / 50));
         ctx.stroke();
+
+        // Draw player number
+        const playerNumber = index + 1;
+        const numberFontSize = Math.max(10, playerRadius * 1.2);
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${numberFontSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(playerNumber.toString(), playerX, playerY);
       }
     });
   }, [players, board, canvasSize]);
 
   return (
     <div className="flex min-h-[100dvh] flex-col lg:flex-row">
-      {/* Mobile header with game info */}
+      {/* Mobile header with game info and menu */}
       <div className="flex items-center justify-between bg-slate-800/50 px-4 py-2 lg:hidden">
         <span className="font-mono text-lg font-bold text-game-primary">{game?.code}</span>
-        {game?.status === 'playing' ? (
-          <MobileStatsHeader
-            players={players}
-            currentPlayerId={currentPlayerId}
-            onTap={() => setIsMobileStatsExpanded(true)}
-          />
-        ) : (
-          <span className="text-sm text-slate-400">
-            Position: <span className="font-bold text-white">{currentPlayer?.position ?? 0}</span>
-          </span>
+
+        {/* Center: Position/rank info */}
+        {game?.status === 'playing' && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-slate-400">Pos:</span>
+            <span className="font-bold text-white">{currentPlayer?.position ?? 0}</span>
+          </div>
         )}
+
+        {/* Menu button for stats */}
+        <button
+          onClick={() => setIsMobileStatsExpanded(true)}
+          className="flex items-center gap-1 rounded-lg bg-slate-700/50 px-3 py-1.5 text-sm text-slate-300 transition-colors hover:bg-slate-700"
+          aria-label="Open game menu"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+          <span className="hidden sm:inline">Menu</span>
+        </button>
       </div>
 
       {/* Game Board - centered and responsive */}
@@ -301,87 +333,89 @@ export function GameBoard() {
           </div>
         ) : (
           <div className="mt-4">
-            <Button
-              onClick={rollDice}
-              variant="primary"
-              fullWidth
-              disabled={game?.status !== 'playing'}
-            >
-              Roll Dice
-            </Button>
-            <p className="mt-2 text-center text-xs text-slate-400">
-              Your position: {currentPlayer?.position ?? 0}
-            </p>
+            {/* Desktop Dice */}
+            <div className="flex flex-col items-center gap-3 rounded-xl bg-slate-700/30 p-4">
+              <p className="text-sm text-slate-400">Click to roll</p>
+              <Suspense
+                fallback={
+                  <Dice3D
+                    onRoll={rollDice}
+                    disabled={game?.status !== 'playing'}
+                    lastRoll={lastMove?.diceRoll ?? null}
+                    size="lg"
+                    animate={shouldAnimateDice}
+                  />
+                }
+              >
+                <ThreeDice
+                  onRoll={rollDice}
+                  disabled={game?.status !== 'playing'}
+                  lastRoll={lastMove?.diceRoll ?? null}
+                  size="lg"
+                  animate={shouldAnimateDice}
+                />
+              </Suspense>
+              <p className="text-center text-xs text-slate-400">
+                Your position: {currentPlayer?.position ?? 0}
+              </p>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Mobile Bottom Bar with Dice */}
-      <div className="fixed inset-x-0 bottom-0 flex items-center justify-between bg-slate-900/95 p-3 backdrop-blur lg:hidden">
-        {/* Player avatars */}
-        <div className="flex -space-x-2">
-          {players.slice(0, 4).map((player) => (
-            <div
-              key={player.id}
-              className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-900 text-xs font-bold text-white"
-              style={{ backgroundColor: player.color }}
-              title={player.name}
-            >
-              {player.name.charAt(0).toUpperCase()}
-            </div>
-          ))}
-          {players.length > 4 && (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-900 bg-slate-700 text-xs text-white">
-              +{players.length - 4}
-            </div>
-          )}
-        </div>
-
-        {/* Last move or winner */}
-        <div className="flex-1 px-3 text-center">
+      {/* Mobile Bottom Bar with Big Dice */}
+      <div className="fixed inset-x-0 bottom-0 flex items-center bg-slate-900/95 p-3 backdrop-blur lg:hidden">
+        {/* Left side: Last move info */}
+        <div className="flex flex-1 flex-col justify-center">
           {winner ? (
-            <p className="text-sm font-bold text-game-secondary">{winner.name} wins!</p>
+            <p className="text-lg font-bold text-game-secondary">{winner.name} wins!</p>
           ) : lastMove ? (
-            <p className="text-xs text-slate-400">
-              {players.find((p) => p.id === lastMove.playerId)?.name}:{' '}
-              <span className="text-white">{lastMove.previousPosition}</span>
-              {' → '}
-              <span className="text-white">{lastMove.newPosition}</span>
-              {lastMove.effect && (
-                <span
-                  className={lastMove.effect.type === 'ladder' ? 'text-green-400' : 'text-red-400'}
-                >
-                  {' '}
-                  {lastMove.effect.type === 'ladder' ? '↑' : '↓'}
-                </span>
-              )}
-            </p>
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium text-white">
+                {players.find((p) => p.id === lastMove.playerId)?.name} rolled{' '}
+                <span className="font-bold text-game-primary">{lastMove.diceRoll}</span>
+              </p>
+              <p className="text-xs text-slate-400">
+                {lastMove.previousPosition} → {lastMove.newPosition}
+                {lastMove.effect && (
+                  <span
+                    className={`ml-1 font-medium ${
+                      lastMove.effect.type === 'ladder' ? 'text-green-400' : 'text-red-400'
+                    }`}
+                  >
+                    {lastMove.effect.type === 'ladder' ? '↑ Ladder!' : '↓ Snake!'}
+                  </span>
+                )}
+              </p>
+            </div>
           ) : (
-            <p className="text-xs text-slate-500">Tap dice to roll</p>
+            <p className="text-sm text-slate-400">Tap the dice to roll</p>
           )}
         </div>
 
-        {/* Dice roller */}
+        {/* Right side: Big Dice */}
         {!winner && (
-          <Suspense
-            fallback={
-              <Dice3D
+          <div className="ml-4 flex-shrink-0">
+            <Suspense
+              fallback={
+                <Dice3D
+                  onRoll={rollDice}
+                  disabled={game?.status !== 'playing'}
+                  lastRoll={lastMove?.diceRoll ?? null}
+                  size="lg"
+                  animate={shouldAnimateDice}
+                />
+              }
+            >
+              <ThreeDice
                 onRoll={rollDice}
                 disabled={game?.status !== 'playing'}
                 lastRoll={lastMove?.diceRoll ?? null}
-                size="md"
+                size="lg"
                 animate={shouldAnimateDice}
               />
-            }
-          >
-            <ThreeDice
-              onRoll={rollDice}
-              disabled={game?.status !== 'playing'}
-              lastRoll={lastMove?.diceRoll ?? null}
-              size="md"
-              animate={shouldAnimateDice}
-            />
-          </Suspense>
+            </Suspense>
+          </div>
         )}
       </div>
 
