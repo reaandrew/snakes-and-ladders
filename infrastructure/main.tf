@@ -62,6 +62,34 @@ locals {
 }
 
 # =============================================================================
+# KMS Keys
+# =============================================================================
+
+resource "aws_kms_key" "dynamodb" {
+  description             = "KMS key for DynamoDB encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  tags                    = local.tags
+}
+
+resource "aws_kms_alias" "dynamodb" {
+  name          = "alias/${local.project}-${local.env}-dynamodb"
+  target_key_id = aws_kms_key.dynamodb.key_id
+}
+
+resource "aws_kms_key" "s3" {
+  description             = "KMS key for S3 encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  tags                    = local.tags
+}
+
+resource "aws_kms_alias" "s3" {
+  name          = "alias/${local.project}-${local.env}-s3"
+  target_key_id = aws_kms_key.s3.key_id
+}
+
+# =============================================================================
 # DynamoDB Table
 # =============================================================================
 
@@ -101,6 +129,15 @@ resource "aws_dynamodb_table" "main" {
   ttl {
     attribute_name = "TTL"
     enabled        = true
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.dynamodb.arn
+  }
+
+  point_in_time_recovery {
+    enabled = true
   }
 
   tags = local.tags
@@ -175,6 +212,11 @@ resource "aws_iam_role_policy_attachment" "ws_connect_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "ws_connect_xray" {
+  role       = aws_iam_role.ws_connect.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
 resource "aws_iam_role_policy" "ws_connect_dynamodb" {
   name = "dynamodb-access"
   role = aws_iam_role.ws_connect.id
@@ -196,6 +238,15 @@ resource "aws_iam_role_policy" "ws_connect_dynamodb" {
           aws_dynamodb_table.main.arn,
           "${aws_dynamodb_table.main.arn}/index/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [aws_kms_key.dynamodb.arn]
       }
     ]
   })
@@ -211,6 +262,10 @@ resource "aws_lambda_function" "ws_connect" {
 
   filename         = data.archive_file.ws_connect.output_path
   source_code_hash = data.archive_file.ws_connect.output_base64sha256
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
@@ -252,6 +307,11 @@ resource "aws_iam_role_policy_attachment" "ws_disconnect_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "ws_disconnect_xray" {
+  role       = aws_iam_role.ws_disconnect.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
 resource "aws_iam_role_policy" "ws_disconnect_dynamodb" {
   name = "dynamodb-access"
   role = aws_iam_role.ws_disconnect.id
@@ -273,6 +333,15 @@ resource "aws_iam_role_policy" "ws_disconnect_dynamodb" {
           aws_dynamodb_table.main.arn,
           "${aws_dynamodb_table.main.arn}/index/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [aws_kms_key.dynamodb.arn]
       }
     ]
   })
@@ -288,6 +357,10 @@ resource "aws_lambda_function" "ws_disconnect" {
 
   filename         = data.archive_file.ws_disconnect.output_path
   source_code_hash = data.archive_file.ws_disconnect.output_base64sha256
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
@@ -329,6 +402,11 @@ resource "aws_iam_role_policy_attachment" "ws_default_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "ws_default_xray" {
+  role       = aws_iam_role.ws_default.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
 resource "aws_iam_role_policy" "ws_default_dynamodb" {
   name = "dynamodb-access"
   role = aws_iam_role.ws_default.id
@@ -350,6 +428,15 @@ resource "aws_iam_role_policy" "ws_default_dynamodb" {
           aws_dynamodb_table.main.arn,
           "${aws_dynamodb_table.main.arn}/index/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [aws_kms_key.dynamodb.arn]
       }
     ]
   })
@@ -383,6 +470,10 @@ resource "aws_lambda_function" "ws_default" {
 
   filename         = data.archive_file.ws_default.output_path
   source_code_hash = data.archive_file.ws_default.output_base64sha256
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
@@ -425,6 +516,11 @@ resource "aws_iam_role_policy_attachment" "http_create_game_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "http_create_game_xray" {
+  role       = aws_iam_role.http_create_game.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
 resource "aws_iam_role_policy" "http_create_game_dynamodb" {
   name = "dynamodb-access"
   role = aws_iam_role.http_create_game.id
@@ -446,6 +542,15 @@ resource "aws_iam_role_policy" "http_create_game_dynamodb" {
           aws_dynamodb_table.main.arn,
           "${aws_dynamodb_table.main.arn}/index/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [aws_kms_key.dynamodb.arn]
       }
     ]
   })
@@ -461,6 +566,10 @@ resource "aws_lambda_function" "http_create_game" {
 
   filename         = data.archive_file.http_create_game.output_path
   source_code_hash = data.archive_file.http_create_game.output_base64sha256
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
@@ -502,6 +611,11 @@ resource "aws_iam_role_policy_attachment" "http_get_game_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "http_get_game_xray" {
+  role       = aws_iam_role.http_get_game.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
 resource "aws_iam_role_policy" "http_get_game_dynamodb" {
   name = "dynamodb-access"
   role = aws_iam_role.http_get_game.id
@@ -523,6 +637,15 @@ resource "aws_iam_role_policy" "http_get_game_dynamodb" {
           aws_dynamodb_table.main.arn,
           "${aws_dynamodb_table.main.arn}/index/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [aws_kms_key.dynamodb.arn]
       }
     ]
   })
@@ -538,6 +661,10 @@ resource "aws_lambda_function" "http_get_game" {
 
   filename         = data.archive_file.http_get_game.output_path
   source_code_hash = data.archive_file.http_get_game.output_base64sha256
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
@@ -579,6 +706,11 @@ resource "aws_iam_role_policy_attachment" "http_poll_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "http_poll_xray" {
+  role       = aws_iam_role.http_poll.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
 resource "aws_iam_role_policy" "http_poll_dynamodb" {
   name = "dynamodb-access"
   role = aws_iam_role.http_poll.id
@@ -600,6 +732,15 @@ resource "aws_iam_role_policy" "http_poll_dynamodb" {
           aws_dynamodb_table.main.arn,
           "${aws_dynamodb_table.main.arn}/index/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [aws_kms_key.dynamodb.arn]
       }
     ]
   })
@@ -615,6 +756,10 @@ resource "aws_lambda_function" "http_poll" {
 
   filename         = data.archive_file.http_poll.output_path
   source_code_hash = data.archive_file.http_poll.output_base64sha256
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
@@ -840,6 +985,64 @@ resource "aws_lambda_permission" "http_poll" {
 # S3 + CloudFront
 # =============================================================================
 
+# Logging bucket for S3 and CloudFront
+resource "aws_s3_bucket" "logs" {
+  bucket = "${local.project}-${local.env}-logs"
+  tags   = local.tags
+}
+
+resource "aws_s3_bucket_public_access_block" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.s3.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  rule {
+    id     = "expire-logs"
+    status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
+
+    expiration {
+      days = 90
+    }
+  }
+}
+
+# Grant CloudFront logging permissions
+resource "aws_s3_bucket_ownership_controls" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+resource "aws_s3_bucket_acl" "logs" {
+  depends_on = [aws_s3_bucket_ownership_controls.logs]
+  bucket     = aws_s3_bucket.logs.id
+  acl        = "log-delivery-write"
+}
+
 resource "aws_s3_bucket" "frontend" {
   bucket = "${local.project}-${local.env}-frontend"
 
@@ -862,6 +1065,24 @@ resource "aws_s3_bucket_versioning" "frontend" {
   }
 }
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.s3.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+resource "aws_s3_bucket_logging" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "s3-access-logs/"
+}
+
 # CloudFront Origin Access Control
 resource "aws_cloudfront_origin_access_control" "frontend" {
   name                              = "${local.project}-${local.env}-frontend-oac"
@@ -871,6 +1092,70 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
   signing_protocol                  = "sigv4"
 }
 
+# WAF Web ACL for CloudFront
+resource "aws_wafv2_web_acl" "cloudfront" {
+  provider    = aws.us_east_1
+  name        = "${local.project}-${local.env}-cloudfront-waf"
+  description = "WAF for CloudFront distribution"
+  scope       = "CLOUDFRONT"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesCommonRuleSetMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "RateLimitRule"
+    priority = 2
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 2000
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "RateLimitRuleMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "CloudFrontWAFMetric"
+    sampled_requests_enabled   = true
+  }
+
+  tags = local.tags
+}
+
 # CloudFront Distribution
 resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
@@ -878,11 +1163,18 @@ resource "aws_cloudfront_distribution" "frontend" {
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
   aliases             = [var.domain_name]
+  web_acl_id          = aws_wafv2_web_acl.cloudfront.arn
 
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
     origin_id                = "S3-${aws_s3_bucket.frontend.bucket}"
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
+  }
+
+  logging_config {
+    include_cookies = false
+    bucket          = aws_s3_bucket.logs.bucket_domain_name
+    prefix          = "cloudfront-logs/"
   }
 
   default_cache_behavior {
