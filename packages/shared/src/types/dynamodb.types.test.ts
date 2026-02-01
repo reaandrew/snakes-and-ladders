@@ -35,5 +35,21 @@ describe('dynamodb.types', () => {
         expect(prefix.SK_PREFIX).toBe('PLAYER#');
       });
     });
+
+    describe('move', () => {
+      it('should generate correct move keys', () => {
+        const keys = Keys.move('ABC123', 'move-001');
+        expect(keys.PK).toBe('GAME#ABC123');
+        expect(keys.SK).toBe('MOVE#move-001');
+      });
+    });
+
+    describe('gameMovesPrefix', () => {
+      it('should generate correct prefix for querying moves', () => {
+        const prefix = Keys.gameMovesPrefix('ABC123');
+        expect(prefix.PK).toBe('GAME#ABC123');
+        expect(prefix.SK_PREFIX).toBe('MOVE#');
+      });
+    });
   });
 });
