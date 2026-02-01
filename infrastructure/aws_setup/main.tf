@@ -105,6 +105,7 @@ resource "aws_iam_role_policy" "dynamodb" {
           "dynamodb:DeleteTable",
           "dynamodb:DescribeTable",
           "dynamodb:DescribeContinuousBackups",
+          "dynamodb:UpdateContinuousBackups",
           "dynamodb:DescribeTimeToLive",
           "dynamodb:ListTagsOfResource",
           "dynamodb:TagResource",

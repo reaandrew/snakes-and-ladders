@@ -36,3 +36,35 @@ commit-msg:
           echo "Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
           exit 1
         fi
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: terraform-format
+      glob: 'infrastructure/**/*.tf'
+      run: |
+        if which terraform > /dev/null 2>&1; then
+          terraform fmt -check -recursive infrastructure
+        else
+          echo "Note: terraform not installed locally."
+        fi
+
+    - name: terraform-tfsec
+      glob: 'infrastructure/**/*.tf'
+      run: |
+        if which tfsec > /dev/null 2>&1; then
+          tfsec infrastructure --minimum-severity HIGH
+        else
+          echo "Note: tfsec not installed locally. Install with: brew install tfsec"
+          echo "Terraform security scanning runs in CI regardless."
+        fi
+
+    - name: terraform-checkov
+      glob: 'infrastructure/**/*.tf'
+      run: |
+        if which checkov > /dev/null 2>&1; then
+          checkov -d infrastructure --framework terraform --compact --quiet
+        else
+          echo "Note: checkov not installed locally. Install with: pip install checkov"
+          echo "Checkov scanning runs in CI regardless."
+        fi
