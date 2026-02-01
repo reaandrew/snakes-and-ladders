@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.2.0...v1.3.0) (2026-02-01)
+
+### Features
+
+* **ui:** add 3D dice, mobile stats sheet, and loading improvements ([ec1ddb5](https://github.com/reaandrew/snakes-and-ladders/commit/ec1ddb5adb4cbc8603c74504a9cc0a103b364e75))
+
 ## [1.2.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.1.0...v1.2.0) (2026-02-01)
 
 ### Features
