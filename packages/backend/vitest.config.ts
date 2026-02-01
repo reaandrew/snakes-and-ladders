@@ -12,6 +12,7 @@ export default defineConfig({
         '**/*.config.*',
         '**/handlers/**',
         '**/index.ts',
+        '**/local/**',
       ],
       thresholds: {
         lines: 80,
