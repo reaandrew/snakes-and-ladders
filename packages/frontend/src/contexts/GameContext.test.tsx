@@ -439,5 +439,83 @@ describe('GameContext', () => {
         expect(result.current.game).toBeNull();
       });
     });
+
+    describe('visibility change and reconnection', () => {
+      it('sends rejoinGame message when visibility changes to visible while in a game', () => {
+        mockIsConnected = true;
+        mockLastMessage = {
+          type: 'joinedGame',
+          playerId: 'player-1',
+          game: createMockGame(),
+          players: [createMockPlayer()],
+        };
+        renderHook(() => useGame(), { wrapper });
+
+        mockSendMessage.mockClear();
+
+        // Simulate visibility change
+        Object.defineProperty(document, 'visibilityState', {
+          value: 'visible',
+          writable: true,
+        });
+        act(() => {
+          document.dispatchEvent(new Event('visibilitychange'));
+        });
+
+        expect(mockSendMessage).toHaveBeenCalledWith({
+          action: 'rejoinGame',
+          gameCode: 'ABC123',
+          playerId: 'player-1',
+        });
+      });
+
+      it('does not send rejoinGame when no game is active', () => {
+        mockIsConnected = true;
+        renderHook(() => useGame(), { wrapper });
+
+        // Simulate visibility change
+        Object.defineProperty(document, 'visibilityState', {
+          value: 'visible',
+          writable: true,
+        });
+        act(() => {
+          document.dispatchEvent(new Event('visibilitychange'));
+        });
+
+        expect(mockSendMessage).not.toHaveBeenCalled();
+      });
+
+      it('sends rejoinGame when reconnected after being disconnected', () => {
+        // Start connected with a game
+        mockIsConnected = true;
+        mockLastMessage = {
+          type: 'joinedGame',
+          playerId: 'player-1',
+          game: createMockGame(),
+          players: [createMockPlayer()],
+        };
+        const { rerender } = renderHook(() => useGame(), { wrapper });
+
+        mockSendMessage.mockClear();
+
+        // Simulate disconnect
+        mockIsConnected = false;
+        act(() => {
+          rerender();
+        });
+
+        // Now reconnect
+        mockIsConnected = true;
+        act(() => {
+          rerender();
+        });
+
+        expect(mockSendMessage).toHaveBeenCalledWith({
+          action: 'rejoinGame',
+          gameCode: 'ABC123',
+          playerId: 'player-1',
+        });
+      });
+    });
   });
 });

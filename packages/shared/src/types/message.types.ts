@@ -1,12 +1,18 @@
 import type { Game, Player } from './game.types.js';
 
 // Client -> Server messages
-export type ClientMessageType = 'joinGame' | 'rollDice' | 'startGame' | 'ping';
+export type ClientMessageType = 'joinGame' | 'rejoinGame' | 'rollDice' | 'startGame' | 'ping';
 
 export interface JoinGameMessage {
   action: 'joinGame';
   gameCode: string;
   playerName: string;
+}
+
+export interface RejoinGameMessage {
+  action: 'rejoinGame';
+  gameCode: string;
+  playerId: string;
 }
 
 export interface RollDiceMessage {
@@ -25,7 +31,12 @@ export interface PingMessage {
   action: 'ping';
 }
 
-export type ClientMessage = JoinGameMessage | RollDiceMessage | StartGameMessage | PingMessage;
+export type ClientMessage =
+  | JoinGameMessage
+  | RejoinGameMessage
+  | RollDiceMessage
+  | StartGameMessage
+  | PingMessage;
 
 // Server -> Client messages
 export type ServerMessageType =

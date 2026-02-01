@@ -1,5 +1,12 @@
 import type { Game, Player } from '@snakes-and-ladders/shared';
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
 
 import { useWebSocket } from './WebSocketContext';
 
@@ -153,6 +160,66 @@ interface GameProviderProps {
 export function GameProvider({ children }: GameProviderProps) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const { sendMessage, lastMessage, isConnected } = useWebSocket();
+  const needsRejoinRef = useRef(false);
+  const wasConnectedRef = useRef(false);
+
+  // Handle visibility change (device wake from sleep)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && state.game && state.currentPlayerId) {
+        // Mark that we need to rejoin when connection is restored
+        needsRejoinRef.current = true;
+        console.log('Device woke up, will rejoin game when connected');
+
+        // If already connected, rejoin immediately
+        if (isConnected) {
+          sendMessage({
+            action: 'rejoinGame',
+            gameCode: state.game.code,
+            playerId: state.currentPlayerId,
+          });
+          needsRejoinRef.current = false;
+        }
+      }
+    };
+
+    const handleOnline = () => {
+      if (state.game && state.currentPlayerId) {
+        needsRejoinRef.current = true;
+        console.log('Device came online, will rejoin game when connected');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [state.game, state.currentPlayerId, isConnected, sendMessage]);
+
+  // Handle reconnection - rejoin game if needed
+  useEffect(() => {
+    if (isConnected && needsRejoinRef.current && state.game && state.currentPlayerId) {
+      console.log('Reconnected, rejoining game...');
+      sendMessage({
+        action: 'rejoinGame',
+        gameCode: state.game.code,
+        playerId: state.currentPlayerId,
+      });
+      needsRejoinRef.current = false;
+    }
+
+    // Track connection state for detecting reconnections
+    if (wasConnectedRef.current && !isConnected && state.game) {
+      // Just disconnected while in a game, mark for rejoin
+      needsRejoinRef.current = true;
+      console.log('Disconnected from game, will rejoin when reconnected');
+    }
+
+    wasConnectedRef.current = isConnected;
+  }, [isConnected, state.game, state.currentPlayerId, sendMessage]);
 
   // Handle incoming WebSocket messages
   useEffect(() => {

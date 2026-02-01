@@ -48,6 +48,10 @@ export const handler: APIGatewayProxyWebsocketHandlerV2 = async (event) => {
         await handleStartGame(connectionId, message.gameCode, message.playerId);
         break;
 
+      case 'rejoinGame':
+        await handleRejoinGame(connectionId, message.gameCode, message.playerId);
+        break;
+
       default:
         await sendError(connectionId, ErrorCodes.INVALID_MESSAGE, 'Unknown action');
     }
@@ -159,6 +163,40 @@ async function handleStartGame(
     game: result.data,
   };
   await broadcastService.broadcastToGame(gameCode, startMessage);
+}
+
+async function handleRejoinGame(
+  connectionId: string,
+  gameCode: string,
+  playerId: string
+): Promise<void> {
+  const result = await gameService.getGame(gameCode);
+
+  if (!result.success) {
+    await sendError(connectionId, result.error.code, result.error.message);
+    return;
+  }
+
+  const { game, players } = result.data;
+
+  // Verify the player exists in this game
+  const player = players.find((p) => p.id === playerId);
+  if (!player) {
+    await sendError(connectionId, ErrorCodes.PLAYER_NOT_FOUND, 'Player not found in game');
+    return;
+  }
+
+  // Re-link connection to game
+  await connectionService.linkToGame(connectionId, gameCode, playerId);
+
+  // Send current game state to the rejoining player
+  const joinedMessage: JoinedGameMessage = {
+    type: 'joinedGame',
+    playerId,
+    game,
+    players,
+  };
+  await broadcastService.sendToConnection(connectionId, joinedMessage);
 }
 
 async function sendError(connectionId: string, code: string, message: string): Promise<void> {

@@ -18,6 +18,7 @@ export type {
   ClientMessage,
   ClientMessageType,
   JoinGameMessage,
+  RejoinGameMessage,
   RollDiceMessage,
   StartGameMessage,
   PingMessage,
