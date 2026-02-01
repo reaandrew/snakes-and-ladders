@@ -239,13 +239,34 @@ resource "aws_iam_role_policy" "logs" {
           "logs:UntagLogGroup",
           "logs:UntagResource",
           "logs:AssociateKmsKey",
-          "logs:DisassociateKmsKey"
+          "logs:DisassociateKmsKey",
+          "logs:CreateLogDelivery",
+          "logs:GetLogDelivery",
+          "logs:UpdateLogDelivery",
+          "logs:DeleteLogDelivery",
+          "logs:ListLogDeliveries",
+          "logs:PutResourcePolicy",
+          "logs:DescribeResourcePolicies",
+          "logs:DeleteResourcePolicy"
         ]
         Resource = [
           "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/snakes-and-ladders-*",
           "arn:aws:logs:${var.aws_region}:*:log-group:/aws/apigateway/snakes-and-ladders-*",
           "arn:aws:logs:us-east-1:*:log-group:aws-waf-logs-snakes-and-ladders-*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogDelivery",
+          "logs:GetLogDelivery",
+          "logs:UpdateLogDelivery",
+          "logs:DeleteLogDelivery",
+          "logs:ListLogDeliveries",
+          "logs:PutResourcePolicy",
+          "logs:DescribeResourcePolicies"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -381,7 +402,9 @@ resource "aws_iam_role_policy" "iam" {
           "iam:TagRole",
           "iam:UntagRole"
         ]
-        Resource = "arn:aws:iam::*:role/snakes-and-ladders-*"
+        Resource = [
+          "arn:aws:iam::*:role/snakes-and-ladders-*"
+        ]
       }
     ]
   })
@@ -422,6 +445,7 @@ resource "aws_iam_role_policy" "kms" {
         Effect = "Allow"
         Action = [
           "kms:CreateKey",
+          "kms:CreateGrant",
           "kms:DescribeKey",
           "kms:GetKeyPolicy",
           "kms:GetKeyRotationStatus",
@@ -472,9 +496,81 @@ resource "aws_iam_role_policy" "waf" {
           "wafv2:ListManagedRuleSets"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateServiceLinkedRole"
+        ]
+        Resource = "arn:aws:iam::*:role/aws-service-role/wafv2.amazonaws.com/*"
+        Condition = {
+          StringLike = {
+            "iam:AWSServiceName" = "wafv2.amazonaws.com"
+          }
+        }
       }
     ]
   })
+}
+
+# =============================================================================
+# API Gateway CloudWatch Logs Role (Account-level setting)
+# Required for API Gateway to write access logs to CloudWatch
+# =============================================================================
+
+resource "aws_iam_role" "api_gateway_cloudwatch" {
+  name = "snakes-and-ladders-api-gateway-cloudwatch"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "apigateway.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name    = "api-gateway-cloudwatch-role"
+    Project = "snakes-and-ladders"
+  }
+}
+
+resource "aws_iam_role_policy" "api_gateway_cloudwatch" {
+  name = "cloudwatch-logs"
+  role = aws_iam_role.api_gateway_cloudwatch.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams",
+          "logs:PutLogEvents",
+          "logs:GetLogEvents",
+          "logs:FilterLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_api_gateway_account" "main" {
+  cloudwatch_role_arn = aws_iam_role.api_gateway_cloudwatch.arn
+}
+
+output "api_gateway_cloudwatch_role_arn" {
+  value       = aws_iam_role.api_gateway_cloudwatch.arn
+  description = "ARN of the API Gateway CloudWatch Logs role"
 }
 
 # =============================================================================
