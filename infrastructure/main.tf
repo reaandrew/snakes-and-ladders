@@ -235,7 +235,38 @@ resource "aws_kms_key" "lambda_env" {
   description             = "KMS key for Lambda environment variable encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
-  tags                    = local.tags
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow Lambda Service"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = local.tags
 }
 
 resource "aws_kms_alias" "lambda_env" {
@@ -1237,6 +1268,7 @@ resource "aws_lambda_permission" "http_poll" {
 # Logging bucket for S3 and CloudFront
 resource "aws_s3_bucket" "logs" {
   #checkov:skip=CKV2_AWS_62:Event notifications not needed for logs bucket
+  #checkov:skip=CKV_AWS_144:Cross-region replication adds cost - not needed for game logs
   bucket = "${local.project}-${local.env}-logs"
   tags   = local.tags
 }
@@ -1307,6 +1339,7 @@ resource "aws_s3_bucket_acl" "logs" {
 
 resource "aws_s3_bucket" "frontend" {
   #checkov:skip=CKV2_AWS_62:Event notifications not needed for static frontend assets
+  #checkov:skip=CKV_AWS_144:Cross-region replication adds cost - not needed for game assets
   bucket = "${local.project}-${local.env}-frontend"
 
   tags = local.tags
@@ -1493,6 +1526,7 @@ resource "aws_cloudfront_response_headers_policy" "security" {
     strict_transport_security {
       access_control_max_age_sec = 31536000
       include_subdomains         = true
+      preload                    = true
       override                   = true
     }
     xss_protection {
@@ -1503,10 +1537,11 @@ resource "aws_cloudfront_response_headers_policy" "security" {
   }
 }
 
-#checkov:skip=CKV_AWS_374:Game should be accessible globally - no geo restriction needed
-#checkov:skip=CKV_AWS_310:Single S3 origin - origin failover not needed for static assets
 # CloudFront Distribution
 resource "aws_cloudfront_distribution" "frontend" {
+  #checkov:skip=CKV_AWS_374:Game should be accessible globally - no geo restriction needed
+  #checkov:skip=CKV_AWS_310:Single S3 origin - origin failover not needed for static assets
+  #checkov:skip=CKV2_AWS_47:WAF has AWSManagedRulesKnownBadInputsRuleSet which covers Log4j
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
