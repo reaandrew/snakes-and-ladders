@@ -69,7 +69,38 @@ resource "aws_kms_key" "dynamodb" {
   description             = "KMS key for DynamoDB encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
-  tags                    = local.tags
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow DynamoDB Service"
+        Effect = "Allow"
+        Principal = {
+          Service = "dynamodb.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = local.tags
 }
 
 resource "aws_kms_alias" "dynamodb" {
@@ -81,7 +112,50 @@ resource "aws_kms_key" "s3" {
   description             = "KMS key for S3 encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
-  tags                    = local.tags
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow S3 Service"
+        Effect = "Allow"
+        Principal = {
+          Service = "s3.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow CloudFront Service"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = local.tags
 }
 
 resource "aws_kms_alias" "s3" {
@@ -332,6 +406,9 @@ resource "aws_iam_role_policy" "ws_connect_dynamodb" {
   })
 }
 
+#checkov:skip=CKV_AWS_117:Lambda does not need VPC access - only accesses DynamoDB via AWS APIs
+#checkov:skip=CKV_AWS_116:Real-time game - DLQ retry would deliver stale game state
+#checkov:skip=CKV_AWS_272:Code signing not required - code deployed via CI/CD with integrity checks
 resource "aws_lambda_function" "ws_connect" {
   function_name                  = "${local.project}-${local.env}-ws-connect"
   role                           = aws_iam_role.ws_connect.arn
@@ -358,6 +435,7 @@ resource "aws_lambda_function" "ws_connect" {
   tags = local.tags
 }
 
+#checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
 resource "aws_cloudwatch_log_group" "ws_connect" {
   name              = "/aws/lambda/${local.project}-${local.env}-ws-connect"
   retention_in_days = 14
@@ -430,6 +508,9 @@ resource "aws_iam_role_policy" "ws_disconnect_dynamodb" {
   })
 }
 
+#checkov:skip=CKV_AWS_117:Lambda does not need VPC access - only accesses DynamoDB via AWS APIs
+#checkov:skip=CKV_AWS_116:Real-time game - DLQ retry would deliver stale game state
+#checkov:skip=CKV_AWS_272:Code signing not required - code deployed via CI/CD with integrity checks
 resource "aws_lambda_function" "ws_disconnect" {
   function_name                  = "${local.project}-${local.env}-ws-disconnect"
   role                           = aws_iam_role.ws_disconnect.arn
@@ -456,6 +537,7 @@ resource "aws_lambda_function" "ws_disconnect" {
   tags = local.tags
 }
 
+#checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
 resource "aws_cloudwatch_log_group" "ws_disconnect" {
   name              = "/aws/lambda/${local.project}-${local.env}-ws-disconnect"
   retention_in_days = 14
@@ -546,6 +628,9 @@ resource "aws_iam_role_policy" "ws_default_api_gateway" {
   })
 }
 
+#checkov:skip=CKV_AWS_117:Lambda does not need VPC access - only accesses DynamoDB via AWS APIs
+#checkov:skip=CKV_AWS_116:Real-time game - DLQ retry would deliver stale game state
+#checkov:skip=CKV_AWS_272:Code signing not required - code deployed via CI/CD with integrity checks
 resource "aws_lambda_function" "ws_default" {
   function_name                  = "${local.project}-${local.env}-ws-default"
   role                           = aws_iam_role.ws_default.arn
@@ -573,6 +658,7 @@ resource "aws_lambda_function" "ws_default" {
   tags = local.tags
 }
 
+#checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
 resource "aws_cloudwatch_log_group" "ws_default" {
   name              = "/aws/lambda/${local.project}-${local.env}-ws-default"
   retention_in_days = 14
@@ -645,6 +731,9 @@ resource "aws_iam_role_policy" "http_create_game_dynamodb" {
   })
 }
 
+#checkov:skip=CKV_AWS_117:Lambda does not need VPC access - only accesses DynamoDB via AWS APIs
+#checkov:skip=CKV_AWS_116:Real-time game - DLQ retry would deliver stale game state
+#checkov:skip=CKV_AWS_272:Code signing not required - code deployed via CI/CD with integrity checks
 resource "aws_lambda_function" "http_create_game" {
   function_name                  = "${local.project}-${local.env}-http-create-game"
   role                           = aws_iam_role.http_create_game.arn
@@ -671,6 +760,7 @@ resource "aws_lambda_function" "http_create_game" {
   tags = local.tags
 }
 
+#checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
 resource "aws_cloudwatch_log_group" "http_create_game" {
   name              = "/aws/lambda/${local.project}-${local.env}-http-create-game"
   retention_in_days = 14
@@ -743,6 +833,9 @@ resource "aws_iam_role_policy" "http_get_game_dynamodb" {
   })
 }
 
+#checkov:skip=CKV_AWS_117:Lambda does not need VPC access - only accesses DynamoDB via AWS APIs
+#checkov:skip=CKV_AWS_116:Real-time game - DLQ retry would deliver stale game state
+#checkov:skip=CKV_AWS_272:Code signing not required - code deployed via CI/CD with integrity checks
 resource "aws_lambda_function" "http_get_game" {
   function_name                  = "${local.project}-${local.env}-http-get-game"
   role                           = aws_iam_role.http_get_game.arn
@@ -769,6 +862,7 @@ resource "aws_lambda_function" "http_get_game" {
   tags = local.tags
 }
 
+#checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
 resource "aws_cloudwatch_log_group" "http_get_game" {
   name              = "/aws/lambda/${local.project}-${local.env}-http-get-game"
   retention_in_days = 14
@@ -841,6 +935,9 @@ resource "aws_iam_role_policy" "http_poll_dynamodb" {
   })
 }
 
+#checkov:skip=CKV_AWS_117:Lambda does not need VPC access - only accesses DynamoDB via AWS APIs
+#checkov:skip=CKV_AWS_116:Real-time game - DLQ retry would deliver stale game state
+#checkov:skip=CKV_AWS_272:Code signing not required - code deployed via CI/CD with integrity checks
 resource "aws_lambda_function" "http_poll" {
   function_name                  = "${local.project}-${local.env}-http-poll"
   role                           = aws_iam_role.http_poll.arn
@@ -867,6 +964,7 @@ resource "aws_lambda_function" "http_poll" {
   tags = local.tags
 }
 
+#checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
 resource "aws_cloudwatch_log_group" "http_poll" {
   name              = "/aws/lambda/${local.project}-${local.env}-http-poll"
   retention_in_days = 14
@@ -886,6 +984,7 @@ resource "aws_apigatewayv2_api" "websocket" {
   tags = local.tags
 }
 
+#checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
 resource "aws_cloudwatch_log_group" "websocket_api" {
   name              = "/aws/apigateway/${local.project}-${local.env}-websocket"
   retention_in_days = 14
@@ -893,6 +992,7 @@ resource "aws_cloudwatch_log_group" "websocket_api" {
   tags              = local.tags
 }
 
+#checkov:skip=CKV2_AWS_51:Public game API - client certificates not applicable for browser WebSocket
 resource "aws_apigatewayv2_stage" "websocket" {
   api_id      = aws_apigatewayv2_api.websocket.id
   name        = "prod"
@@ -920,18 +1020,21 @@ resource "aws_apigatewayv2_stage" "websocket" {
 }
 
 # WebSocket Routes
+#checkov:skip=CKV_AWS_309:Public game API - no authorization required for WebSocket connections
 resource "aws_apigatewayv2_route" "ws_connect" {
   api_id    = aws_apigatewayv2_api.websocket.id
   route_key = "$connect"
   target    = "integrations/${aws_apigatewayv2_integration.ws_connect.id}"
 }
 
+#checkov:skip=CKV_AWS_309:Public game API - no authorization required for WebSocket connections
 resource "aws_apigatewayv2_route" "ws_disconnect" {
   api_id    = aws_apigatewayv2_api.websocket.id
   route_key = "$disconnect"
   target    = "integrations/${aws_apigatewayv2_integration.ws_disconnect.id}"
 }
 
+#checkov:skip=CKV_AWS_309:Public game API - no authorization required for WebSocket connections
 resource "aws_apigatewayv2_route" "ws_default" {
   api_id    = aws_apigatewayv2_api.websocket.id
   route_key = "$default"
@@ -1003,6 +1106,7 @@ resource "aws_apigatewayv2_api" "http" {
   tags = local.tags
 }
 
+#checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
 resource "aws_cloudwatch_log_group" "http_api" {
   name              = "/aws/apigateway/${local.project}-${local.env}-http"
   retention_in_days = 14
@@ -1033,12 +1137,14 @@ resource "aws_apigatewayv2_stage" "http" {
 }
 
 # HTTP Routes
+#checkov:skip=CKV_AWS_309:Public game API - no authorization required for game creation
 resource "aws_apigatewayv2_route" "create_game" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "POST /games"
   target    = "integrations/${aws_apigatewayv2_integration.create_game.id}"
 }
 
+#checkov:skip=CKV_AWS_309:Public game API - no authorization required for game lookup
 resource "aws_apigatewayv2_route" "get_game" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "GET /games/{code}"
@@ -1080,24 +1186,28 @@ resource "aws_lambda_permission" "http_get_game" {
 }
 
 # Long-polling Routes (fallback for WebSocket)
+#checkov:skip=CKV_AWS_309:Public game API - long-polling fallback for browsers without WebSocket
 resource "aws_apigatewayv2_route" "poll_connect" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "POST /poll/connect"
   target    = "integrations/${aws_apigatewayv2_integration.http_poll.id}"
 }
 
+#checkov:skip=CKV_AWS_309:Public game API - long-polling fallback for browsers without WebSocket
 resource "aws_apigatewayv2_route" "poll_messages" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "GET /poll/messages"
   target    = "integrations/${aws_apigatewayv2_integration.http_poll.id}"
 }
 
+#checkov:skip=CKV_AWS_309:Public game API - long-polling fallback for browsers without WebSocket
 resource "aws_apigatewayv2_route" "poll_send" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "POST /poll/send"
   target    = "integrations/${aws_apigatewayv2_integration.http_poll.id}"
 }
 
+#checkov:skip=CKV_AWS_309:Public game API - long-polling fallback for browsers without WebSocket
 resource "aws_apigatewayv2_route" "poll_disconnect" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "POST /poll/disconnect"
@@ -1125,6 +1235,7 @@ resource "aws_lambda_permission" "http_poll" {
 # =============================================================================
 
 # Logging bucket for S3 and CloudFront
+#checkov:skip=CKV2_AWS_62:Event notifications not needed for logs bucket
 resource "aws_s3_bucket" "logs" {
   bucket = "${local.project}-${local.env}-logs"
   tags   = local.tags
@@ -1179,6 +1290,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
 }
 
 # Grant CloudFront logging permissions
+#checkov:skip=CKV2_AWS_65:CloudFront standard logging requires ACLs - cannot use BucketOwnerEnforced
 resource "aws_s3_bucket_ownership_controls" "logs" {
   bucket = aws_s3_bucket.logs.id
 
@@ -1193,6 +1305,7 @@ resource "aws_s3_bucket_acl" "logs" {
   acl        = "log-delivery-write"
 }
 
+#checkov:skip=CKV2_AWS_62:Event notifications not needed for static frontend assets
 resource "aws_s3_bucket" "frontend" {
   bucket = "${local.project}-${local.env}-frontend"
 
@@ -1293,8 +1406,30 @@ resource "aws_wafv2_web_acl" "cloudfront" {
   }
 
   rule {
-    name     = "RateLimitRule"
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
     priority = 2
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesKnownBadInputsRuleSetMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "RateLimitRule"
+    priority = 3
 
     action {
       block {}
@@ -1323,6 +1458,53 @@ resource "aws_wafv2_web_acl" "cloudfront" {
   tags = local.tags
 }
 
+# WAF Logging
+#checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
+#checkov:skip=CKV_AWS_158:WAF logs in us-east-1 - separate KMS key adds complexity
+resource "aws_cloudwatch_log_group" "waf" {
+  provider          = aws.us_east_1
+  name              = "aws-waf-logs-${local.project}-${local.env}"
+  retention_in_days = 14
+  tags              = local.tags
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "cloudfront" {
+  provider                = aws.us_east_1
+  log_destination_configs = [aws_cloudwatch_log_group.waf.arn]
+  resource_arn            = aws_wafv2_web_acl.cloudfront.arn
+}
+
+# CloudFront Response Headers Policy (security headers)
+resource "aws_cloudfront_response_headers_policy" "security" {
+  name = "${local.project}-${local.env}-security-headers"
+
+  security_headers_config {
+    content_type_options {
+      override = true
+    }
+    frame_options {
+      frame_option = "DENY"
+      override     = true
+    }
+    referrer_policy {
+      referrer_policy = "strict-origin-when-cross-origin"
+      override        = true
+    }
+    strict_transport_security {
+      access_control_max_age_sec = 31536000
+      include_subdomains         = true
+      override                   = true
+    }
+    xss_protection {
+      mode_block = true
+      protection = true
+      override   = true
+    }
+  }
+}
+
+#checkov:skip=CKV_AWS_374:Game should be accessible globally - no geo restriction needed
+#checkov:skip=CKV_AWS_310:Single S3 origin - origin failover not needed for static assets
 # CloudFront Distribution
 resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
@@ -1356,11 +1538,12 @@ resource "aws_cloudfront_distribution" "frontend" {
       }
     }
 
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
-    compress               = true
+    viewer_protocol_policy     = "redirect-to-https"
+    min_ttl                    = 0
+    default_ttl                = 3600
+    max_ttl                    = 86400
+    compress                   = true
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
   }
 
   # SPA routing - serve index.html for 404s

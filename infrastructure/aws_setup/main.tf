@@ -440,6 +440,7 @@ resource "aws_acm_certificate_validation" "frontend" {
 }
 
 # Store certificate ARN in SSM for CI to reference
+#checkov:skip=CKV2_AWS_34:Certificate ARN is not sensitive - it's a public AWS resource identifier
 resource "aws_ssm_parameter" "frontend_cert_arn" {
   name        = "/snakes-and-ladders/certificates/frontend_cert_arn"
   description = "ARN of the validated frontend CloudFront certificate (us-east-1)"
