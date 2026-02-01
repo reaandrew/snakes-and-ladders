@@ -56,8 +56,10 @@ describe('App', () => {
 
     const mainDiv = container.querySelector('.min-h-screen');
     expect(mainDiv).toBeInTheDocument();
-    expect(mainDiv?.className).toContain('bg-gradient-to-b');
+    expect(mainDiv?.className).toContain('bg-gradient-to-br');
     expect(mainDiv?.className).toContain('from-slate-900');
-    expect(mainDiv?.className).toContain('to-slate-800');
+    expect(mainDiv?.className).toContain('via-indigo-950');
+    expect(mainDiv?.className).toContain('to-slate-900');
+    expect(mainDiv?.className).toContain('animate-gradient-shift');
   });
 });

@@ -6,7 +6,7 @@ function App() {
   return (
     <WebSocketProvider>
       <GameProvider>
-        <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800">
+        <div className="min-h-screen animate-gradient-shift bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 bg-[length:400%_400%]">
           <GameScreen />
         </div>
       </GameProvider>

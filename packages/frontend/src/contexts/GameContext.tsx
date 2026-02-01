@@ -3,6 +3,19 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback } 
 
 import { useWebSocket } from './WebSocketContext';
 
+interface Move {
+  id: string;
+  gameCode: string;
+  playerId: string;
+  playerName: string;
+  playerColor: string;
+  diceRoll: number;
+  previousPosition: number;
+  newPosition: number;
+  effect?: { type: 'snake' | 'ladder'; from: number; to: number };
+  timestamp: string;
+}
+
 interface GameState {
   game: Game | null;
   players: Player[];
@@ -14,6 +27,7 @@ interface GameState {
     newPosition: number;
     effect?: { type: 'snake' | 'ladder'; from: number; to: number };
   } | null;
+  moves: Move[];
   error: string | null;
   isLoading: boolean;
 }
@@ -35,6 +49,7 @@ const initialState: GameState = {
   players: [],
   currentPlayerId: null,
   lastMove: null,
+  moves: [],
   error: null,
   isLoading: false,
 };
@@ -67,13 +82,27 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
     case 'PLAYER_MOVED': {
-      const move = action.payload;
-      if (!move) return state;
+      const moveData = action.payload;
+      if (!moveData) return state;
+      const player = state.players.find((p) => p.id === moveData.playerId);
+      const newMove: Move = {
+        id: `${Date.now()}-${moveData.playerId.slice(-6)}`,
+        gameCode: state.game?.code || '',
+        playerId: moveData.playerId,
+        playerName: player?.name || 'Unknown',
+        playerColor: player?.color || '#888888',
+        diceRoll: moveData.diceRoll,
+        previousPosition: moveData.previousPosition,
+        newPosition: moveData.newPosition,
+        effect: moveData.effect,
+        timestamp: new Date().toISOString(),
+      };
       return {
         ...state,
-        lastMove: move,
+        lastMove: moveData,
+        moves: [newMove, ...state.moves].slice(0, 50), // Keep last 50 moves
         players: state.players.map((p) =>
-          p.id === move.playerId ? { ...p, position: move.newPosition } : p
+          p.id === moveData.playerId ? { ...p, position: moveData.newPosition } : p
         ),
       };
     }
@@ -83,6 +112,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         game: action.payload,
         players: state.players.map((p) => ({ ...p, position: 1 })),
+        moves: [], // Clear move history on game start
       };
 
     case 'GAME_ENDED':

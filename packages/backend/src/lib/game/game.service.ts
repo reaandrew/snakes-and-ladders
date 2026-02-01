@@ -1,8 +1,10 @@
 import type {
   Game,
+  Move,
   Player,
   GameEntity,
   PlayerEntity,
+  MoveEntity,
   DEFAULT_BOARD_CONFIG,
   ErrorCode,
 } from '@snakes-and-ladders/shared';
@@ -35,6 +37,7 @@ export interface RollDiceResult {
   newPosition: number;
   effect?: { type: 'snake' | 'ladder'; from: number; to: number };
   isWinner: boolean;
+  move: Move;
 }
 
 export interface GameServiceError {
@@ -256,9 +259,9 @@ export class GameService {
       };
     }
 
-    const diceRoll = rollDice();
+    const diceRollValue = rollDice();
     const previousPosition = playerEntity.position;
-    const moveResult = processMove(previousPosition, diceRoll, gameEntity.board);
+    const moveResult = processMove(previousPosition, diceRollValue, gameEntity.board);
 
     await this.repository.updatePlayerPosition(gameCode, playerId, moveResult.newPosition);
 
@@ -266,15 +269,78 @@ export class GameService {
       await this.repository.updateGameStatus(gameCode, 'finished', playerId);
     }
 
+    // Save move to history
+    const now = new Date().toISOString();
+    const moveId = `${now}-${playerId.slice(-6)}`;
+    const moveEntity: MoveEntity = {
+      PK: `GAME#${gameCode}`,
+      SK: `MOVE#${moveId}`,
+      id: moveId,
+      gameCode,
+      playerId,
+      playerName: playerEntity.name,
+      playerColor: playerEntity.color,
+      diceRoll: diceRollValue,
+      previousPosition,
+      newPosition: moveResult.newPosition,
+      effect: moveResult.effect,
+      timestamp: now,
+    };
+
+    await this.repository.putMove(moveEntity);
+
+    const move: Move = {
+      id: moveId,
+      gameCode,
+      playerId,
+      playerName: playerEntity.name,
+      playerColor: playerEntity.color,
+      diceRoll: diceRollValue,
+      previousPosition,
+      newPosition: moveResult.newPosition,
+      effect: moveResult.effect,
+      timestamp: now,
+    };
+
     return {
       success: true,
       data: {
-        diceRoll,
+        diceRoll: diceRollValue,
         previousPosition,
         newPosition: moveResult.newPosition,
         effect: moveResult.effect,
         isWinner: moveResult.isWinner,
+        move,
       },
+    };
+  }
+
+  async getGameMoves(gameCode: string, limit = 50): Promise<GameServiceResult<Move[]>> {
+    const gameEntity = await this.repository.getGame(gameCode);
+
+    if (!gameEntity) {
+      return {
+        success: false,
+        error: { code: ErrorCodes.GAME_NOT_FOUND, message: 'Game not found' },
+      };
+    }
+
+    const moveEntities = await this.repository.getGameMoves(gameCode, limit);
+
+    return {
+      success: true,
+      data: moveEntities.map((entity) => ({
+        id: entity.id,
+        gameCode: entity.gameCode,
+        playerId: entity.playerId,
+        playerName: entity.playerName,
+        playerColor: entity.playerColor,
+        diceRoll: entity.diceRoll,
+        previousPosition: entity.previousPosition,
+        newPosition: entity.newPosition,
+        effect: entity.effect,
+        timestamp: entity.timestamp,
+      })),
     };
   }
 

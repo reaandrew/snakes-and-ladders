@@ -1,8 +1,13 @@
 import type { ClientMessage, ServerMessage } from '@snakes-and-ladders/shared';
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 
+import type { Transport, TransportState } from '../lib/transport';
+import { WebSocketTransport, LongPollingTransport } from '../lib/transport';
+
 interface WebSocketContextType {
   isConnected: boolean;
+  transportState: TransportState;
+  transportType: 'websocket' | 'long-polling' | null;
   sendMessage: (message: ClientMessage) => void;
   lastMessage: ServerMessage | null;
   connect: (url: string) => void;
@@ -15,85 +20,89 @@ interface WebSocketProviderProps {
   children: React.ReactNode;
 }
 
-export function WebSocketProvider({ children }: WebSocketProviderProps) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState<ServerMessage | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
-  const pingIntervalRef = useRef<number | null>(null);
+const FALLBACK_THRESHOLD = 3; // Switch to long-polling after 3 consecutive WebSocket failures
 
-  const clearTimers = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
+export function WebSocketProvider({ children }: WebSocketProviderProps) {
+  const [transportState, setTransportState] = useState<TransportState>('disconnected');
+  const [transportType, setTransportType] = useState<'websocket' | 'long-polling' | null>(null);
+  const [lastMessage, setLastMessage] = useState<ServerMessage | null>(null);
+  const transportRef = useRef<Transport | null>(null);
+  const urlRef = useRef<string>('');
+  const wsFailureCountRef = useRef<number>(0);
+
+  const createTransport = useCallback((type: 'websocket' | 'long-polling'): Transport => {
+    const config = {
+      events: {
+        onMessage: (message: ServerMessage) => {
+          setLastMessage(message);
+        },
+        onStateChange: (state: TransportState) => {
+          setTransportState(state);
+
+          // Track WebSocket failures for fallback logic
+          if (type === 'websocket') {
+            if (state === 'reconnecting') {
+              wsFailureCountRef.current++;
+
+              // Switch to long-polling after threshold
+              if (wsFailureCountRef.current >= FALLBACK_THRESHOLD) {
+                console.log('Switching to long-polling fallback after WebSocket failures');
+                transportRef.current?.disconnect();
+                const longPolling = createTransport('long-polling');
+                transportRef.current = longPolling;
+                setTransportType('long-polling');
+                longPolling.connect(urlRef.current);
+              }
+            } else if (state === 'connected') {
+              wsFailureCountRef.current = 0;
+            }
+          }
+        },
+        onError: (error: Error) => {
+          console.error(`Transport error (${type}):`, error);
+        },
+      },
+      maxRetries: 10,
+      initialRetryDelay: 1000,
+      maxRetryDelay: 30000,
+    };
+
+    if (type === 'websocket') {
+      return new WebSocketTransport(config);
     }
-    if (pingIntervalRef.current) {
-      clearInterval(pingIntervalRef.current);
-      pingIntervalRef.current = null;
-    }
+    return new LongPollingTransport(config);
   }, []);
 
   const connect = useCallback(
     (url: string) => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
+      if (transportRef.current?.state === 'connected') {
         return;
       }
 
-      clearTimers();
+      urlRef.current = url;
+      wsFailureCountRef.current = 0;
 
-      const ws = new WebSocket(url);
-
-      ws.onopen = () => {
-        setIsConnected(true);
-        // Start ping interval
-        pingIntervalRef.current = window.setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ action: 'ping' }));
-          }
-        }, 30000);
-      };
-
-      ws.onclose = () => {
-        setIsConnected(false);
-        clearTimers();
-        // Auto-reconnect after 3 seconds
-        reconnectTimeoutRef.current = window.setTimeout(() => {
-          connect(url);
-        }, 3000);
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data as string) as ServerMessage;
-          setLastMessage(message);
-        } catch (error) {
-          console.error('Failed to parse message:', error);
-        }
-      };
-
-      wsRef.current = ws;
+      // Always start with WebSocket
+      const transport = createTransport('websocket');
+      transportRef.current = transport;
+      setTransportType('websocket');
+      transport.connect(url);
     },
-    [clearTimers]
+    [createTransport]
   );
 
   const disconnect = useCallback(() => {
-    clearTimers();
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setIsConnected(false);
-  }, [clearTimers]);
+    transportRef.current?.disconnect();
+    transportRef.current = null;
+    setTransportType(null);
+    wsFailureCountRef.current = 0;
+  }, []);
 
   const sendMessage = useCallback((message: ClientMessage) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
+    if (transportRef.current?.state === 'connected') {
+      transportRef.current.send(message);
     } else {
-      console.warn('WebSocket not connected');
+      console.warn('Transport not connected');
     }
   }, []);
 
@@ -103,10 +112,14 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     };
   }, [disconnect]);
 
+  const isConnected = transportState === 'connected';
+
   return (
     <WebSocketContext.Provider
       value={{
         isConnected,
+        transportState,
+        transportType,
         sendMessage,
         lastMessage,
         connect,

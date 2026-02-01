@@ -44,7 +44,23 @@ export interface ConnectionEntity {
   GSI1SK?: string;
 }
 
-export type DynamoDBEntity = GameEntity | PlayerEntity | ConnectionEntity;
+export interface MoveEntity {
+  PK: `GAME#${string}`;
+  SK: `MOVE#${string}`; // timestamp-based for ordering
+  id: string;
+  gameCode: string;
+  playerId: string;
+  playerName: string;
+  playerColor: string;
+  diceRoll: number;
+  previousPosition: number;
+  newPosition: number;
+  effect?: { type: 'snake' | 'ladder'; from: number; to: number };
+  timestamp: string;
+  TTL?: number;
+}
+
+export type DynamoDBEntity = GameEntity | PlayerEntity | ConnectionEntity | MoveEntity;
 
 // Helper functions for key generation
 export const Keys = {
@@ -63,8 +79,18 @@ export const Keys = {
     SK: 'METADATA' as const,
   }),
 
+  move: (gameCode: string, moveId: string) => ({
+    PK: `GAME#${gameCode}` as const,
+    SK: `MOVE#${moveId}` as const,
+  }),
+
   gamePlayersPrefix: (gameCode: string) => ({
     PK: `GAME#${gameCode}` as const,
     SK_PREFIX: 'PLAYER#' as const,
+  }),
+
+  gameMovesPrefix: (gameCode: string) => ({
+    PK: `GAME#${gameCode}` as const,
+    SK_PREFIX: 'MOVE#' as const,
   }),
 } as const;

@@ -140,6 +140,12 @@ data "archive_file" "http_get_game" {
   output_path = "${path.module}/lambda-zips/http-get-game.zip"
 }
 
+data "archive_file" "http_poll" {
+  type        = "zip"
+  source_file = "${path.module}/../packages/backend/dist/http-poll.js"
+  output_path = "${path.module}/lambda-zips/http-poll.zip"
+}
+
 # =============================================================================
 # Lambda IAM Roles and Functions
 # =============================================================================
@@ -548,6 +554,83 @@ resource "aws_cloudwatch_log_group" "http_get_game" {
   tags              = local.tags
 }
 
+# --- http-poll Lambda (Long-polling fallback) ---
+resource "aws_iam_role" "http_poll" {
+  name = "${local.project}-${local.env}-http-poll-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "http_poll_basic" {
+  role       = aws_iam_role.http_poll.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "http_poll_dynamodb" {
+  name = "dynamodb-access"
+  role = aws_iam_role.http_poll.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = [
+          aws_dynamodb_table.main.arn,
+          "${aws_dynamodb_table.main.arn}/index/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_lambda_function" "http_poll" {
+  function_name = "${local.project}-${local.env}-http-poll"
+  role          = aws_iam_role.http_poll.arn
+  handler       = "http-poll.handler"
+  runtime       = "nodejs20.x"
+  timeout       = 30
+  memory_size   = 256
+
+  filename         = data.archive_file.http_poll.output_path
+  source_code_hash = data.archive_file.http_poll.output_base64sha256
+
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.main.name
+    }
+  }
+
+  tags = local.tags
+}
+
+resource "aws_cloudwatch_log_group" "http_poll" {
+  name              = "/aws/lambda/${local.project}-${local.env}-http-poll"
+  retention_in_days = 14
+  tags              = local.tags
+}
+
 # =============================================================================
 # API Gateway - WebSocket
 # =============================================================================
@@ -650,7 +733,7 @@ resource "aws_apigatewayv2_api" "http" {
   cors_configuration {
     allow_origins = ["https://${var.domain_name}"]
     allow_methods = ["GET", "POST", "OPTIONS"]
-    allow_headers = ["Content-Type", "Authorization"]
+    allow_headers = ["Content-Type", "Authorization", "X-Connection-Id"]
     max_age       = 300
   }
 
@@ -708,6 +791,47 @@ resource "aws_lambda_permission" "http_get_game" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.http_get_game.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}
+
+# Long-polling Routes (fallback for WebSocket)
+resource "aws_apigatewayv2_route" "poll_connect" {
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "POST /poll/connect"
+  target    = "integrations/${aws_apigatewayv2_integration.http_poll.id}"
+}
+
+resource "aws_apigatewayv2_route" "poll_messages" {
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "GET /poll/messages"
+  target    = "integrations/${aws_apigatewayv2_integration.http_poll.id}"
+}
+
+resource "aws_apigatewayv2_route" "poll_send" {
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "POST /poll/send"
+  target    = "integrations/${aws_apigatewayv2_integration.http_poll.id}"
+}
+
+resource "aws_apigatewayv2_route" "poll_disconnect" {
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "POST /poll/disconnect"
+  target    = "integrations/${aws_apigatewayv2_integration.http_poll.id}"
+}
+
+resource "aws_apigatewayv2_integration" "http_poll" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.http_poll.invoke_arn
+  integration_method     = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_lambda_permission" "http_poll" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.http_poll.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }

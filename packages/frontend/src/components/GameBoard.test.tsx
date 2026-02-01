@@ -84,6 +84,8 @@ describe('GameBoard', () => {
       currentPlayerId: 'player-1',
       rollDice: rollDiceMock,
       lastMove: null,
+      moves: [],
+      resetGame: vi.fn(),
     });
   });
 
@@ -127,6 +129,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
@@ -141,6 +145,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
@@ -171,6 +177,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
@@ -185,6 +193,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
@@ -194,8 +204,8 @@ describe('GameBoard', () => {
     });
   });
 
-  describe('Last Move Info', () => {
-    it('displays last move information', () => {
+  describe('Move History', () => {
+    it('displays move history', () => {
       mockUseGame.mockReturnValue({
         game: createMockGame(),
         players: [createMockPlayer()],
@@ -207,16 +217,30 @@ describe('GameBoard', () => {
           previousPosition: 5,
           newPosition: 9,
         },
+        moves: [
+          {
+            id: 'move-1',
+            gameCode: 'ABC123',
+            playerId: 'player-1',
+            playerName: 'Test Player',
+            playerColor: '#EF4444',
+            diceRoll: 4,
+            previousPosition: 5,
+            newPosition: 9,
+            timestamp: '2024-01-01T00:00:00Z',
+          },
+        ],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
 
-      expect(screen.getByText(/Test Player rolled/)).toBeInTheDocument();
-      expect(screen.getByText('4')).toBeInTheDocument();
-      expect(screen.getByText(/5 → 9/)).toBeInTheDocument();
+      expect(screen.getByText('Move History')).toBeInTheDocument();
+      // Player name appears in both PlayerList and MoveHistory
+      expect(screen.getAllByText('Test Player').length).toBeGreaterThanOrEqual(2);
     });
 
-    it('shows ladder effect', () => {
+    it('shows ladder effect in move history', () => {
       mockUseGame.mockReturnValue({
         game: createMockGame(),
         players: [createMockPlayer()],
@@ -229,14 +253,29 @@ describe('GameBoard', () => {
           newPosition: 38,
           effect: { type: 'ladder', from: 2, to: 38 },
         },
+        moves: [
+          {
+            id: 'move-1',
+            gameCode: 'ABC123',
+            playerId: 'player-1',
+            playerName: 'Test Player',
+            playerColor: '#EF4444',
+            diceRoll: 1,
+            previousPosition: 1,
+            newPosition: 38,
+            effect: { type: 'ladder', from: 2, to: 38 },
+            timestamp: '2024-01-01T00:00:00Z',
+          },
+        ],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
 
-      expect(screen.getByText(/ladder!/)).toBeInTheDocument();
+      expect(screen.getByText(/Ladder!/)).toBeInTheDocument();
     });
 
-    it('shows snake effect', () => {
+    it('shows snake effect in move history', () => {
       mockUseGame.mockReturnValue({
         game: createMockGame(),
         players: [createMockPlayer()],
@@ -249,17 +288,32 @@ describe('GameBoard', () => {
           newPosition: 6,
           effect: { type: 'snake', from: 16, to: 6 },
         },
+        moves: [
+          {
+            id: 'move-1',
+            gameCode: 'ABC123',
+            playerId: 'player-1',
+            playerName: 'Test Player',
+            playerColor: '#EF4444',
+            diceRoll: 2,
+            previousPosition: 14,
+            newPosition: 6,
+            effect: { type: 'snake', from: 16, to: 6 },
+            timestamp: '2024-01-01T00:00:00Z',
+          },
+        ],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
 
-      expect(screen.getByText(/snake!/)).toBeInTheDocument();
+      expect(screen.getByText(/Snake!/)).toBeInTheDocument();
     });
 
-    it('does not display last move info when no move', () => {
+    it('shows empty move history when no moves', () => {
       render(<GameBoard />);
 
-      expect(screen.queryByText(/rolled/)).not.toBeInTheDocument();
+      expect(screen.getByText('No moves yet')).toBeInTheDocument();
     });
   });
 
@@ -271,6 +325,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
@@ -291,6 +347,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
@@ -306,6 +364,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
@@ -361,6 +421,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
@@ -381,6 +443,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);
@@ -409,6 +473,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       // Should not throw
@@ -428,6 +494,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       // Should not throw
@@ -449,6 +517,8 @@ describe('GameBoard', () => {
         currentPlayerId: 'player-1',
         rollDice: rollDiceMock,
         lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
       });
 
       render(<GameBoard />);

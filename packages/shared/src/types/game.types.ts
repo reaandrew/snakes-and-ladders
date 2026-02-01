@@ -45,6 +45,19 @@ export interface Player {
   joinedAt: string;
 }
 
+export interface Move {
+  id: string;
+  gameCode: string;
+  playerId: string;
+  playerName: string;
+  playerColor: string;
+  diceRoll: number;
+  previousPosition: number;
+  newPosition: number;
+  effect?: { type: 'snake' | 'ladder'; from: number; to: number };
+  timestamp: string;
+}
+
 export const PLAYER_COLORS = [
   '#EF4444', // red
   '#3B82F6', // blue

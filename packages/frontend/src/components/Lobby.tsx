@@ -6,6 +6,7 @@ import { useWebSocket } from '../contexts/WebSocketContext';
 import { PlayerList } from './PlayerList';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { Logo } from './ui/Logo';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
@@ -209,8 +210,9 @@ export function Lobby() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl bg-slate-800/50 p-8 backdrop-blur">
-        <h1 className="mb-2 text-center text-4xl font-bold text-white">Snakes & Ladders</h1>
-        <p className="mb-8 text-center text-slate-400">Real-time multiplayer</p>
+        <div className="mb-8">
+          <Logo size="lg" showSubtitle />
+        </div>
 
         <div className="space-y-4">
           <Button onClick={() => setView('create')} variant="primary" fullWidth>

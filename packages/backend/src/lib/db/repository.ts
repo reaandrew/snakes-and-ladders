@@ -7,7 +7,12 @@ import {
   QueryCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
-import type { GameEntity, PlayerEntity, ConnectionEntity } from '@snakes-and-ladders/shared';
+import type {
+  GameEntity,
+  PlayerEntity,
+  ConnectionEntity,
+  MoveEntity,
+} from '@snakes-and-ladders/shared';
 
 export interface RepositoryConfig {
   tableName: string;
@@ -212,5 +217,31 @@ export class Repository {
       })
     );
     return (result.Items as ConnectionEntity[]) ?? [];
+  }
+
+  // Move operations
+  async putMove(move: MoveEntity): Promise<void> {
+    await this.docClient.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: move,
+      })
+    );
+  }
+
+  async getGameMoves(gameCode: string, limit = 50): Promise<MoveEntity[]> {
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        ExpressionAttributeValues: {
+          ':pk': `GAME#${gameCode}`,
+          ':sk': 'MOVE#',
+        },
+        ScanIndexForward: false, // Most recent first
+        Limit: limit,
+      })
+    );
+    return (result.Items as MoveEntity[]) ?? [];
   }
 }

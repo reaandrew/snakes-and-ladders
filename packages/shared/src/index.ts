@@ -3,6 +3,7 @@ export type {
   Game,
   GameStatus,
   Player,
+  Move,
   BoardConfig,
   SnakeOrLadder,
   CreateGameRequest,
@@ -42,6 +43,7 @@ export type {
   GameEntity,
   PlayerEntity,
   ConnectionEntity,
+  MoveEntity,
   DynamoDBEntity,
 } from './types/dynamodb.types.js';
 

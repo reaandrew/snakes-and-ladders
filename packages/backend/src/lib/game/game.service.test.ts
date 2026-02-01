@@ -18,6 +18,8 @@ describe('GameService', () => {
     putPlayer: ReturnType<typeof vi.fn>;
     updatePlayerPosition: ReturnType<typeof vi.fn>;
     getGamePlayers: ReturnType<typeof vi.fn>;
+    putMove: ReturnType<typeof vi.fn>;
+    getGameMoves: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -29,6 +31,8 @@ describe('GameService', () => {
       putPlayer: vi.fn(),
       updatePlayerPosition: vi.fn(),
       getGamePlayers: vi.fn(),
+      putMove: vi.fn(),
+      getGameMoves: vi.fn(),
     };
 
     gameService = new GameService({

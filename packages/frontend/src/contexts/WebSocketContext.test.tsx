@@ -300,7 +300,7 @@ describe('WebSocketContext', () => {
         screen.getByText('Send').click();
       });
 
-      expect(consoleWarn).toHaveBeenCalledWith('WebSocket not connected');
+      expect(consoleWarn).toHaveBeenCalledWith('Transport not connected');
       consoleWarn.mockRestore();
     });
 
@@ -374,7 +374,10 @@ describe('WebSocketContext', () => {
         }
       });
 
-      expect(consoleError).toHaveBeenCalledWith('Failed to parse message:', expect.any(Error));
+      expect(consoleError).toHaveBeenCalledWith(
+        'Failed to parse WebSocket message:',
+        expect.any(Error)
+      );
       expect(screen.getByTestId('lastMessage')).toHaveTextContent('no-message');
       consoleError.mockRestore();
     });
@@ -459,8 +462,9 @@ describe('WebSocketContext', () => {
         MockWebSocket.instances[0].simulateClose();
       });
 
-      // Check that reconnect timeout was set (3 seconds)
-      const reconnectTimeout = timeoutCallbacks.find((t) => t.delay === 3000);
+      // Check that reconnect timeout was set (exponential backoff starting at 1 second)
+      // With jitter, delay will be between 800-1200ms
+      const reconnectTimeout = timeoutCallbacks.find((t) => t.delay >= 800 && t.delay <= 1200);
       expect(reconnectTimeout).toBeDefined();
     });
 

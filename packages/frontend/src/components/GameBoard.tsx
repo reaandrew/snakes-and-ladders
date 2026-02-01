@@ -2,8 +2,12 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 
 import { useGame } from '../contexts/GameContext';
 
+import { Dice3D } from './Dice3D';
+import { MoveHistory } from './MoveHistory';
 import { PlayerList } from './PlayerList';
+import { PositionIndicator } from './PositionIndicator';
 import { Button } from './ui/Button';
+import { WinnerModal } from './WinnerModal';
 
 // Helper function to convert cell number to canvas coordinates
 function getCellCoordinates(cellNumber: number, cellSize: number, boardSize: number) {
@@ -17,110 +21,10 @@ function getCellCoordinates(cellNumber: number, cellSize: number, boardSize: num
   };
 }
 
-// Dice animation component
-function DiceRoller({
-  onRoll,
-  disabled,
-  lastRoll,
-}: {
-  onRoll: () => void;
-  disabled: boolean;
-  lastRoll: number | null;
-}) {
-  const [isRolling, setIsRolling] = useState(false);
-  const [displayValue, setDisplayValue] = useState<number | null>(lastRoll);
-
-  useEffect(() => {
-    if (lastRoll !== null && lastRoll !== displayValue) {
-      setIsRolling(true);
-      // Animate through random numbers
-      let count = 0;
-      const interval = setInterval(() => {
-        setDisplayValue(Math.floor(Math.random() * 6) + 1);
-        count++;
-        if (count >= 10) {
-          clearInterval(interval);
-          setDisplayValue(lastRoll);
-          setIsRolling(false);
-        }
-      }, 50);
-      return () => clearInterval(interval);
-    }
-  }, [lastRoll, displayValue]);
-
-  const diceDots: Record<number, JSX.Element> = {
-    1: (
-      <div className="flex h-full items-center justify-center">
-        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-      </div>
-    ),
-    2: (
-      <div className="flex h-full flex-col justify-between p-2">
-        <div className="h-3 w-3 self-start rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-      </div>
-    ),
-    3: (
-      <div className="flex h-full flex-col justify-between p-2">
-        <div className="h-3 w-3 self-start rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 self-center rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-      </div>
-    ),
-    4: (
-      <div className="grid h-full grid-cols-2 gap-1 p-2">
-        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-      </div>
-    ),
-    5: (
-      <div className="grid h-full grid-cols-2 gap-1 p-2">
-        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="col-span-2 h-3 w-3 justify-self-center rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-      </div>
-    ),
-    6: (
-      <div className="grid h-full grid-cols-2 gap-1 p-2">
-        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-        <div className="h-3 w-3 justify-self-end rounded-full bg-slate-800 sm:h-4 sm:w-4" />
-      </div>
-    ),
-  };
-
-  return (
-    <button
-      onClick={onRoll}
-      disabled={disabled || isRolling}
-      className={`
-        relative h-16 w-16 rounded-xl bg-white shadow-lg
-        transition-all duration-200 sm:h-20 sm:w-20
-        ${isRolling ? 'animate-bounce' : ''}
-        ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:scale-105 hover:shadow-xl active:scale-95'}
-      `}
-      aria-label="Roll dice"
-    >
-      {displayValue ? (
-        diceDots[displayValue]
-      ) : (
-        <div className="text-2xl font-bold text-slate-400">?</div>
-      )}
-    </button>
-  );
-}
-
 export function GameBoard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { game, players, currentPlayerId, rollDice, lastMove } = useGame();
+  const { game, players, currentPlayerId, rollDice, lastMove, moves, resetGame } = useGame();
   const board = game?.board;
   const [canvasSize, setCanvasSize] = useState(500);
 
@@ -131,7 +35,8 @@ export function GameBoard() {
   const updateCanvasSize = useCallback(() => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.clientWidth - 32; // padding
-      const maxSize = Math.min(containerWidth, 500);
+      const containerHeight = window.innerHeight - 200; // Account for header/footer
+      const maxSize = Math.min(containerWidth, containerHeight, 800); // Increased from 500
       setCanvasSize(Math.max(280, maxSize)); // minimum 280px for playability
     }
   }, []);
@@ -335,9 +240,13 @@ export function GameBoard() {
       {/* Mobile header with game info */}
       <div className="flex items-center justify-between bg-slate-800/50 px-4 py-2 lg:hidden">
         <span className="font-mono text-lg font-bold text-game-primary">{game?.code}</span>
-        <span className="text-sm text-slate-400">
-          Position: <span className="font-bold text-white">{currentPlayer?.position ?? 0}</span>
-        </span>
+        {game?.status === 'playing' ? (
+          <PositionIndicator players={players} currentPlayerId={currentPlayerId} compact />
+        ) : (
+          <span className="text-sm text-slate-400">
+            Position: <span className="font-bold text-white">{currentPlayer?.position ?? 0}</span>
+          </span>
+        )}
       </div>
 
       {/* Game Board - centered and responsive */}
@@ -357,24 +266,17 @@ export function GameBoard() {
 
         <PlayerList players={players} currentPlayerId={currentPlayerId} />
 
-        {/* Last Move Info */}
-        {lastMove && (
-          <div className="mt-4 rounded-xl bg-slate-700/30 p-4">
-            <p className="text-sm text-slate-300">
-              {players.find((p) => p.id === lastMove.playerId)?.name} rolled{' '}
-              <span className="font-bold text-game-primary">{lastMove.diceRoll}</span>
-            </p>
-            <p className="text-sm text-slate-400">
-              {lastMove.previousPosition} → {lastMove.newPosition}
-              {lastMove.effect && (
-                <span
-                  className={lastMove.effect.type === 'ladder' ? 'text-green-400' : 'text-red-400'}
-                >
-                  {' '}
-                  ({lastMove.effect.type === 'ladder' ? '↑' : '↓'} {lastMove.effect.type}!)
-                </span>
-              )}
-            </p>
+        {/* Position Indicator */}
+        {game?.status === 'playing' && (
+          <div className="mt-4">
+            <PositionIndicator players={players} currentPlayerId={currentPlayerId} />
+          </div>
+        )}
+
+        {/* Move History */}
+        {game?.status === 'playing' && (
+          <div className="mt-4">
+            <MoveHistory moves={moves} maxHeight="180px" />
           </div>
         )}
 
@@ -447,16 +349,28 @@ export function GameBoard() {
 
         {/* Dice roller */}
         {!winner && (
-          <DiceRoller
+          <Dice3D
             onRoll={rollDice}
             disabled={game?.status !== 'playing'}
             lastRoll={lastMove?.diceRoll ?? null}
+            size="md"
           />
         )}
       </div>
 
       {/* Spacer for fixed bottom bar on mobile */}
       <div className="h-24 lg:hidden" />
+
+      {/* Winner Modal */}
+      {winner && game?.status === 'finished' && (
+        <WinnerModal
+          winnerName={winner.name}
+          winnerColor={winner.color}
+          isCurrentPlayer={winner.id === currentPlayerId}
+          onPlayAgain={resetGame}
+          onLeaveGame={resetGame}
+        />
+      )}
     </div>
   );
 }
