@@ -1,0 +1,54 @@
+# Checkov configuration for snakes-and-ladders
+# Skip checks that are excessive for a simple game application
+
+skip-check:
+  # Lambda VPC - not needed for simple game, adds complexity and cost
+  - CKV_AWS_117 # Lambda function configured inside VPC
+
+  # Lambda DLQ - game actions are real-time, DLQ doesn't make sense
+  - CKV_AWS_116 # Lambda configured for Dead Letter Queue
+
+  # Lambda code signing - overkill for a game, we have CI/CD controls
+  - CKV_AWS_272 # Lambda code-signing validation
+
+  # Lambda reserved concurrency - let AWS manage scaling
+  - CKV_AWS_115 # Lambda concurrent execution limit
+
+  # Lambda env var encryption - table name is not sensitive
+  - CKV_AWS_173 # Lambda environmental variable encryption
+
+  # CloudWatch log retention 1 year - 14 days is sufficient for game logs
+  - CKV_AWS_338 # CloudWatch logs retain for 1 year
+
+  # CloudWatch log KMS encryption - game logs are not sensitive
+  - CKV_AWS_158 # CloudWatch Log Group encrypted by KMS
+
+  # S3 lifecycle abort incomplete uploads - not critical for frontend assets
+  - CKV_AWS_300 # S3 lifecycle abort failed uploads
+
+  # GitHub Actions IAM - needs broad permissions for CI/CD deployment
+  - CKV_AWS_289 # IAM permissions management constraints (aws_setup)
+  - CKV_AWS_290 # IAM write access constraints (aws_setup)
+  - CKV_AWS_355 # IAM wildcard resources (aws_setup)
+
+  # API Gateway logging - not critical for game
+  - CKV_AWS_76 # API Gateway access logging
+  - CKV2_AWS_29 # API Gateway access logging enabled
+
+  # WAF additional rules - basic rate limiting is sufficient
+  - CKV2_AWS_47 # WAF has rules configured
+
+  # S3 versioning for logs bucket - logs are temporary
+  - CKV_AWS_21 # S3 versioning enabled (logs bucket)
+
+  # S3 MFA delete - overkill for game assets
+  - CKV_AWS_54 # S3 MFA delete
+
+  # Cross-region replication - single region is fine for a game
+  - CKV_AWS_144 # S3 cross-region replication
+
+  # API Gateway caching - real-time game doesn't need caching
+  - CKV_AWS_225 # API Gateway caching enabled
+
+  # EventBridge bus encryption - no eventbridge used
+  - CKV_AWS_343 # EventBridge custom bus encrypted

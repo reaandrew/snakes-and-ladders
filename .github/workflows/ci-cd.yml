@@ -375,6 +375,7 @@ jobs:
           directory: infrastructure
           framework: terraform
           soft_fail: false
+          config_file: infrastructure/.checkov.yml
           output_format: cli,sarif
           output_file_path: console,checkov-results.sarif
 
