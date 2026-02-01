@@ -210,7 +210,7 @@ resource "aws_iam_role_policy" "lambda" {
   })
 }
 
-# CloudWatch Logs - only snakes-and-ladders log groups
+# CloudWatch Logs - snakes-and-ladders log groups
 resource "aws_iam_role_policy" "logs" {
   name = "logs-access"
   role = aws_iam_role.github_actions.id
@@ -223,7 +223,7 @@ resource "aws_iam_role_policy" "logs" {
         Action = [
           "logs:DescribeLogGroups"
         ]
-        Resource = "arn:aws:logs:${var.aws_region}:*:log-group:*"
+        Resource = "*"
       },
       {
         Effect = "Allow"
@@ -237,9 +237,15 @@ resource "aws_iam_role_policy" "logs" {
           "logs:TagLogGroup",
           "logs:TagResource",
           "logs:UntagLogGroup",
-          "logs:UntagResource"
+          "logs:UntagResource",
+          "logs:AssociateKmsKey",
+          "logs:DisassociateKmsKey"
         ]
-        Resource = "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/snakes-and-ladders-*"
+        Resource = [
+          "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/snakes-and-ladders-*",
+          "arn:aws:logs:${var.aws_region}:*:log-group:/aws/apigateway/snakes-and-ladders-*",
+          "arn:aws:logs:us-east-1:*:log-group:aws-waf-logs-snakes-and-ladders-*"
+        ]
       }
     ]
   })
@@ -396,6 +402,73 @@ resource "aws_iam_role_policy" "ssm" {
           "ssm:GetParameters"
         ]
         Resource = "arn:aws:ssm:*:*:parameter/snakes-and-ladders/*"
+      }
+    ]
+  })
+}
+
+# KMS - for encryption keys
+resource "aws_iam_role_policy" "kms" {
+  name = "kms-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:CreateKey",
+          "kms:DescribeKey",
+          "kms:GetKeyPolicy",
+          "kms:GetKeyRotationStatus",
+          "kms:ListResourceTags",
+          "kms:ScheduleKeyDeletion",
+          "kms:TagResource",
+          "kms:UntagResource",
+          "kms:PutKeyPolicy",
+          "kms:EnableKeyRotation",
+          "kms:CreateAlias",
+          "kms:DeleteAlias",
+          "kms:UpdateAlias",
+          "kms:ListAliases"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# WAFv2 - for CloudFront protection
+resource "aws_iam_role_policy" "waf" {
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs WAF write access
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for WAF resources
+  name = "waf-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "wafv2:CreateWebACL",
+          "wafv2:DeleteWebACL",
+          "wafv2:GetWebACL",
+          "wafv2:ListWebACLs",
+          "wafv2:UpdateWebACL",
+          "wafv2:ListTagsForResource",
+          "wafv2:TagResource",
+          "wafv2:UntagResource",
+          "wafv2:GetLoggingConfiguration",
+          "wafv2:PutLoggingConfiguration",
+          "wafv2:DeleteLoggingConfiguration",
+          "wafv2:ListRuleGroups",
+          "wafv2:GetManagedRuleSet",
+          "wafv2:ListAvailableManagedRuleGroups",
+          "wafv2:ListManagedRuleSets"
+        ]
+        Resource = "*"
       }
     ]
   })
