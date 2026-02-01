@@ -247,6 +247,9 @@ resource "aws_iam_role_policy" "logs" {
 
 # API Gateway - full access (needed for WebSocket API management)
 resource "aws_iam_role_policy" "api_gateway" {
+  #checkov:skip=CKV_AWS_289:CI/CD deploy role needs broad API Gateway permissions
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs broad API Gateway permissions
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for dynamic API Gateway resources
   name = "api-gateway-access"
   role = aws_iam_role.github_actions.id
 
@@ -273,6 +276,9 @@ resource "aws_iam_role_policy" "api_gateway" {
 
 # CloudFront - full access (needed for distribution management)
 resource "aws_iam_role_policy" "cloudfront" {
+  #checkov:skip=CKV_AWS_289:CI/CD deploy role needs broad CloudFront permissions
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs broad CloudFront permissions
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for dynamic CloudFront resources
   name = "cloudfront-access"
   role = aws_iam_role.github_actions.id
 
@@ -292,6 +298,8 @@ resource "aws_iam_role_policy" "cloudfront" {
 
 # Route53 - for DNS records
 resource "aws_iam_role_policy" "route53" {
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs Route53 write access for DNS
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for hosted zones
   name = "route53-access"
   role = aws_iam_role.github_actions.id
 
@@ -316,6 +324,8 @@ resource "aws_iam_role_policy" "route53" {
 
 # ACM - for certificate management (us-east-1 for CloudFront)
 resource "aws_iam_role_policy" "acm" {
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs ACM write access for certificates
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for certificate resources
   name = "acm-access"
   role = aws_iam_role.github_actions.id
 
@@ -440,8 +450,8 @@ resource "aws_acm_certificate_validation" "frontend" {
 }
 
 # Store certificate ARN in SSM for CI to reference
-#checkov:skip=CKV2_AWS_34:Certificate ARN is not sensitive - it's a public AWS resource identifier
 resource "aws_ssm_parameter" "frontend_cert_arn" {
+  #checkov:skip=CKV2_AWS_34:Certificate ARN is not sensitive - it's a public AWS resource identifier
   name        = "/snakes-and-ladders/certificates/frontend_cert_arn"
   description = "ARN of the validated frontend CloudFront certificate (us-east-1)"
   type        = "String"
