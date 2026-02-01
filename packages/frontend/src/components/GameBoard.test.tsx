@@ -11,6 +11,35 @@ vi.mock('../contexts/GameContext', () => ({
   useGame: vi.fn(),
 }));
 
+// Mock the ThreeDice component (lazy loaded)
+vi.mock('./ThreeDice', () => ({
+  default: vi.fn(({ onRoll, disabled }: { onRoll: () => void; disabled: boolean }) => (
+    <button onClick={onRoll} disabled={disabled} aria-label="Roll dice 3D">
+      3D Dice
+    </button>
+  )),
+}));
+
+// Mock Three.js to avoid WebGL errors in tests
+vi.mock('three', () => ({
+  Scene: vi.fn(),
+  PerspectiveCamera: vi.fn(),
+  WebGLRenderer: vi.fn(() => ({
+    setSize: vi.fn(),
+    setPixelRatio: vi.fn(),
+    render: vi.fn(),
+    dispose: vi.fn(),
+    domElement: document.createElement('canvas'),
+  })),
+  BoxGeometry: vi.fn(() => ({ dispose: vi.fn() })),
+  MeshStandardMaterial: vi.fn(() => ({ dispose: vi.fn(), map: { dispose: vi.fn() } })),
+  Mesh: vi.fn(() => ({ rotation: { copy: vi.fn() } })),
+  AmbientLight: vi.fn(),
+  DirectionalLight: vi.fn(() => ({ position: { set: vi.fn() } })),
+  CanvasTexture: vi.fn(() => ({ needsUpdate: false })),
+  Euler: vi.fn(),
+}));
+
 // Mock canvas context
 const createMockCanvasContext = () => ({
   fillRect: vi.fn(),
@@ -99,8 +128,9 @@ describe('GameBoard', () => {
     it('renders player list', () => {
       render(<GameBoard />);
 
-      expect(screen.getByText('Players (1)')).toBeInTheDocument();
-      expect(screen.getByText('Test Player')).toBeInTheDocument();
+      // Players list appears in both desktop sidebar and mobile stats sheet
+      expect(screen.getAllByText('Players (1)').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Test Player').length).toBeGreaterThan(0);
     });
 
     it('renders canvas', () => {
@@ -235,8 +265,9 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      expect(screen.getByText('Move History')).toBeInTheDocument();
-      // Player name appears in both PlayerList and MoveHistory
+      // Move History appears in both desktop sidebar and mobile stats sheet
+      expect(screen.getAllByText('Move History').length).toBeGreaterThan(0);
+      // Player name appears in PlayerList and MoveHistory on both desktop and mobile
       expect(screen.getAllByText('Test Player').length).toBeGreaterThanOrEqual(2);
     });
 
@@ -272,7 +303,8 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      expect(screen.getByText(/Ladder!/)).toBeInTheDocument();
+      // Ladder effect appears in both desktop and mobile
+      expect(screen.getAllByText(/Ladder!/).length).toBeGreaterThan(0);
     });
 
     it('shows snake effect in move history', () => {
@@ -307,13 +339,15 @@ describe('GameBoard', () => {
 
       render(<GameBoard />);
 
-      expect(screen.getByText(/Snake!/)).toBeInTheDocument();
+      // Snake effect appears in both desktop and mobile
+      expect(screen.getAllByText(/Snake!/).length).toBeGreaterThan(0);
     });
 
     it('shows empty move history when no moves', () => {
       render(<GameBoard />);
 
-      expect(screen.getByText('No moves yet')).toBeInTheDocument();
+      // "No moves yet" appears in both desktop and mobile
+      expect(screen.getAllByText('No moves yet').length).toBeGreaterThan(0);
     });
   });
 
@@ -528,6 +562,78 @@ describe('GameBoard', () => {
       // Filter out snake/ladder endpoint arcs (4 endpoints for 2 snakes/ladders)
       // Each player has 1 arc call
       expect(arcCalls.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('Mobile Stats Sheet', () => {
+    it('renders mobile stats header with tap for details', () => {
+      const players = [
+        createMockPlayer({ id: 'player-1', name: 'Alice', position: 10 }),
+        createMockPlayer({ id: 'player-2', name: 'Bob', position: 5 }),
+      ];
+
+      mockUseGame.mockReturnValue({
+        game: createMockGame(),
+        players,
+        currentPlayerId: 'player-1',
+        rollDice: rollDiceMock,
+        lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
+      });
+
+      render(<GameBoard />);
+
+      expect(screen.getByText('Tap for details')).toBeInTheDocument();
+    });
+
+    it('opens mobile stats sheet when header is tapped', () => {
+      const players = [
+        createMockPlayer({ id: 'player-1', name: 'Alice', position: 10 }),
+        createMockPlayer({ id: 'player-2', name: 'Bob', position: 5 }),
+      ];
+
+      mockUseGame.mockReturnValue({
+        game: createMockGame(),
+        players,
+        currentPlayerId: 'player-1',
+        rollDice: rollDiceMock,
+        lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
+      });
+
+      render(<GameBoard />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open game statistics' }));
+
+      expect(screen.getByRole('dialog', { name: 'Game statistics' })).toBeInTheDocument();
+    });
+
+    it('does not render mobile stats sheet when game is not playing', () => {
+      mockUseGame.mockReturnValue({
+        game: createMockGame({ status: 'waiting' }),
+        players: [createMockPlayer()],
+        currentPlayerId: 'player-1',
+        rollDice: rollDiceMock,
+        lastMove: null,
+        moves: [],
+        resetGame: vi.fn(),
+      });
+
+      render(<GameBoard />);
+
+      expect(screen.queryByText('Tap for details')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Dice Animation', () => {
+    it('renders dice component', () => {
+      render(<GameBoard />);
+
+      // Should have the Roll dice button from Dice3D fallback or the 3D dice
+      const diceButtons = screen.getAllByRole('button', { name: /roll dice/i });
+      expect(diceButtons.length).toBeGreaterThan(0);
     });
   });
 });

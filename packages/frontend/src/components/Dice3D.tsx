@@ -5,6 +5,7 @@ interface Dice3DProps {
   disabled: boolean;
   lastRoll: number | null;
   size?: 'sm' | 'md' | 'lg';
+  animate?: boolean;
 }
 
 // Rotation values to show each face
@@ -72,7 +73,7 @@ function DiceDots({ value, dotSize }: { value: number; dotSize: string }) {
   return patterns[value];
 }
 
-export function Dice3D({ onRoll, disabled, lastRoll, size = 'md' }: Dice3DProps) {
+export function Dice3D({ onRoll, disabled, lastRoll, size = 'md', animate = true }: Dice3DProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [displayValue, setDisplayValue] = useState<number>(1);
   const [spinCount, setSpinCount] = useState(0);
@@ -92,18 +93,23 @@ export function Dice3D({ onRoll, disabled, lastRoll, size = 'md' }: Dice3DProps)
   // Handle the roll animation when lastRoll changes
   useEffect(() => {
     if (lastRoll !== null && lastRoll !== displayValue) {
-      setIsRolling(true);
-      setSpinCount((prev) => prev + 1);
+      if (animate) {
+        setIsRolling(true);
+        setSpinCount((prev) => prev + 1);
 
-      // Set the final value after animation completes
-      const timer = setTimeout(() => {
+        // Set the final value after animation completes
+        const timer = setTimeout(() => {
+          setDisplayValue(lastRoll);
+          setIsRolling(false);
+        }, 800);
+
+        return () => clearTimeout(timer);
+      } else {
+        // Immediately show result without animation
         setDisplayValue(lastRoll);
-        setIsRolling(false);
-      }, 800);
-
-      return () => clearTimeout(timer);
+      }
     }
-  }, [lastRoll, displayValue]);
+  }, [lastRoll, displayValue, animate]);
 
   const handleClick = useCallback(() => {
     if (!disabled && !isRolling) {

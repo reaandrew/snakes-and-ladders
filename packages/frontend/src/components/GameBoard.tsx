@@ -1,13 +1,17 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 
 import { useGame } from '../contexts/GameContext';
 
 import { Dice3D } from './Dice3D';
+import { MobileStatsSheet, MobileStatsHeader } from './MobileStatsSheet';
 import { MoveHistory } from './MoveHistory';
 import { PlayerList } from './PlayerList';
 import { PositionIndicator } from './PositionIndicator';
 import { Button } from './ui/Button';
 import { WinnerModal } from './WinnerModal';
+
+// Lazy load ThreeDice for bundle optimization
+const ThreeDice = lazy(() => import('./ThreeDice'));
 
 // Helper function to convert cell number to canvas coordinates
 function getCellCoordinates(cellNumber: number, cellSize: number, boardSize: number) {
@@ -30,6 +34,12 @@ export function GameBoard() {
 
   const currentPlayer = players.find((p) => p.id === currentPlayerId);
   const winner = game?.winnerId ? players.find((p) => p.id === game.winnerId) : null;
+
+  // Mobile stats sheet state
+  const [isMobileStatsExpanded, setIsMobileStatsExpanded] = useState(false);
+
+  // Determine if dice should animate (only for the player who rolled)
+  const shouldAnimateDice = lastMove?.playerId === currentPlayerId;
 
   // Responsive canvas sizing
   const updateCanvasSize = useCallback(() => {
@@ -241,7 +251,11 @@ export function GameBoard() {
       <div className="flex items-center justify-between bg-slate-800/50 px-4 py-2 lg:hidden">
         <span className="font-mono text-lg font-bold text-game-primary">{game?.code}</span>
         {game?.status === 'playing' ? (
-          <PositionIndicator players={players} currentPlayerId={currentPlayerId} compact />
+          <MobileStatsHeader
+            players={players}
+            currentPlayerId={currentPlayerId}
+            onTap={() => setIsMobileStatsExpanded(true)}
+          />
         ) : (
           <span className="text-sm text-slate-400">
             Position: <span className="font-bold text-white">{currentPlayer?.position ?? 0}</span>
@@ -349,14 +363,38 @@ export function GameBoard() {
 
         {/* Dice roller */}
         {!winner && (
-          <Dice3D
-            onRoll={rollDice}
-            disabled={game?.status !== 'playing'}
-            lastRoll={lastMove?.diceRoll ?? null}
-            size="md"
-          />
+          <Suspense
+            fallback={
+              <Dice3D
+                onRoll={rollDice}
+                disabled={game?.status !== 'playing'}
+                lastRoll={lastMove?.diceRoll ?? null}
+                size="md"
+                animate={shouldAnimateDice}
+              />
+            }
+          >
+            <ThreeDice
+              onRoll={rollDice}
+              disabled={game?.status !== 'playing'}
+              lastRoll={lastMove?.diceRoll ?? null}
+              size="md"
+              animate={shouldAnimateDice}
+            />
+          </Suspense>
         )}
       </div>
+
+      {/* Mobile Stats Sheet */}
+      {game?.status === 'playing' && (
+        <MobileStatsSheet
+          isExpanded={isMobileStatsExpanded}
+          onToggle={() => setIsMobileStatsExpanded((prev) => !prev)}
+          players={players}
+          currentPlayerId={currentPlayerId}
+          moves={moves}
+        />
+      )}
 
       {/* Spacer for fixed bottom bar on mobile */}
       <div className="h-24 lg:hidden" />

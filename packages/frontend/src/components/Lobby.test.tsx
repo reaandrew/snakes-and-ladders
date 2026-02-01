@@ -212,6 +212,61 @@ describe('Lobby', () => {
       consoleError.mockRestore();
     });
 
+    it('shows immediate loading state on create click', async () => {
+      // Use a promise that doesn't resolve immediately to verify immediate state change
+      let resolvePromise: () => void = () => {};
+      const fetchPromise = new Promise<Response>((resolve) => {
+        resolvePromise = () =>
+          resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                game: { code: 'XYZ789' },
+                playerId: 'player-1',
+              }),
+          } as Response);
+      });
+      mockFetch.mockReturnValueOnce(fetchPromise);
+
+      render(<Lobby />);
+      fireEvent.click(screen.getByRole('button', { name: 'Create Game' }));
+      fireEvent.change(screen.getByLabelText('Your Name'), { target: { value: 'TestPlayer' } });
+
+      // Click and immediately check for Creating... state
+      fireEvent.click(screen.getByRole('button', { name: 'Create Game' }));
+
+      // Should show Creating... immediately before fetch resolves
+      expect(screen.getByRole('button', { name: 'Creating...' })).toBeDisabled();
+
+      // Resolve the promise to clean up
+      resolvePromise();
+      await waitFor(() => {
+        expect(connectMock).toHaveBeenCalled();
+      });
+    });
+
+    it('resets creating state on API error', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      render(<Lobby />);
+      fireEvent.click(screen.getByRole('button', { name: 'Create Game' }));
+      fireEvent.change(screen.getByLabelText('Your Name'), { target: { value: 'TestPlayer' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Create Game' }));
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith('Failed to create game:', expect.any(Error));
+      });
+
+      // Button should be enabled again after error
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Create Game' })).not.toBeDisabled();
+      });
+
+      consoleError.mockRestore();
+    });
+
     it('navigates back to home view', () => {
       render(<Lobby />);
       fireEvent.click(screen.getByRole('button', { name: 'Create Game' }));

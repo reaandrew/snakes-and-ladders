@@ -17,6 +17,7 @@ export function Lobby() {
   const [gameCode, setGameCode] = useState('');
   const [createdGameCode, setCreatedGameCode] = useState('');
   const [isCreator, setIsCreator] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const { game, players, currentPlayerId, joinGame, startGame, error, isLoading, resetGame } =
     useGame();
@@ -31,6 +32,8 @@ export function Lobby() {
 
   const handleCreateGame = async () => {
     if (!playerName.trim()) return;
+
+    setIsCreating(true);
 
     try {
       const response = await fetch(`${API_URL}/games`, {
@@ -51,6 +54,7 @@ export function Lobby() {
       connect(WS_URL);
     } catch (err) {
       console.error('Failed to create game:', err);
+      setIsCreating(false);
     }
   };
 
@@ -145,11 +149,11 @@ export function Lobby() {
 
             <Button
               onClick={() => void handleCreateGame()}
-              disabled={!playerName.trim() || isLoading}
+              disabled={!playerName.trim() || isCreating || isLoading}
               variant="primary"
               fullWidth
             >
-              {isLoading ? 'Creating...' : 'Create Game'}
+              {isCreating || isLoading ? 'Creating...' : 'Create Game'}
             </Button>
 
             <Button onClick={handleBack} variant="secondary" fullWidth>
