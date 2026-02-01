@@ -409,6 +409,9 @@ resource "aws_iam_role_policy" "ssm" {
 
 # KMS - for encryption keys
 resource "aws_iam_role_policy" "kms" {
+  #checkov:skip=CKV_AWS_289:CI/CD deploy role needs KMS permissions for encryption
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs KMS write access
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for dynamic KMS keys
   name = "kms-access"
   role = aws_iam_role.github_actions.id
 
