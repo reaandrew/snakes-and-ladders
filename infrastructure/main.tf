@@ -89,6 +89,86 @@ resource "aws_kms_alias" "s3" {
   target_key_id = aws_kms_key.s3.key_id
 }
 
+resource "aws_kms_key" "cloudwatch" {
+  description             = "KMS key for CloudWatch Logs encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow CloudWatch Logs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${data.aws_region.current.name}.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+        Condition = {
+          ArnLike = {
+            "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${local.project}-*"
+          }
+        }
+      },
+      {
+        Sid    = "Allow API Gateway Logs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${data.aws_region.current.name}.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+        Condition = {
+          ArnLike = {
+            "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/apigateway/${local.project}-*"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = local.tags
+}
+
+resource "aws_kms_alias" "cloudwatch" {
+  name          = "alias/${local.project}-${local.env}-cloudwatch"
+  target_key_id = aws_kms_key.cloudwatch.key_id
+}
+
+resource "aws_kms_key" "lambda_env" {
+  description             = "KMS key for Lambda environment variable encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  tags                    = local.tags
+}
+
+resource "aws_kms_alias" "lambda_env" {
+  name          = "alias/${local.project}-${local.env}-lambda-env"
+  target_key_id = aws_kms_key.lambda_env.key_id
+}
+
 # =============================================================================
 # DynamoDB Table
 # =============================================================================
@@ -253,12 +333,14 @@ resource "aws_iam_role_policy" "ws_connect_dynamodb" {
 }
 
 resource "aws_lambda_function" "ws_connect" {
-  function_name = "${local.project}-${local.env}-ws-connect"
-  role          = aws_iam_role.ws_connect.arn
-  handler       = "ws-connect.handler"
-  runtime       = "nodejs20.x"
-  timeout       = 30
-  memory_size   = 256
+  function_name                  = "${local.project}-${local.env}-ws-connect"
+  role                           = aws_iam_role.ws_connect.arn
+  handler                        = "ws-connect.handler"
+  runtime                        = "nodejs20.x"
+  timeout                        = 30
+  memory_size                    = 256
+  reserved_concurrent_executions = 100
+  kms_key_arn                    = aws_kms_key.lambda_env.arn
 
   filename         = data.archive_file.ws_connect.output_path
   source_code_hash = data.archive_file.ws_connect.output_base64sha256
@@ -279,6 +361,7 @@ resource "aws_lambda_function" "ws_connect" {
 resource "aws_cloudwatch_log_group" "ws_connect" {
   name              = "/aws/lambda/${local.project}-${local.env}-ws-connect"
   retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
   tags              = local.tags
 }
 
@@ -348,12 +431,14 @@ resource "aws_iam_role_policy" "ws_disconnect_dynamodb" {
 }
 
 resource "aws_lambda_function" "ws_disconnect" {
-  function_name = "${local.project}-${local.env}-ws-disconnect"
-  role          = aws_iam_role.ws_disconnect.arn
-  handler       = "ws-disconnect.handler"
-  runtime       = "nodejs20.x"
-  timeout       = 30
-  memory_size   = 256
+  function_name                  = "${local.project}-${local.env}-ws-disconnect"
+  role                           = aws_iam_role.ws_disconnect.arn
+  handler                        = "ws-disconnect.handler"
+  runtime                        = "nodejs20.x"
+  timeout                        = 30
+  memory_size                    = 256
+  reserved_concurrent_executions = 100
+  kms_key_arn                    = aws_kms_key.lambda_env.arn
 
   filename         = data.archive_file.ws_disconnect.output_path
   source_code_hash = data.archive_file.ws_disconnect.output_base64sha256
@@ -374,6 +459,7 @@ resource "aws_lambda_function" "ws_disconnect" {
 resource "aws_cloudwatch_log_group" "ws_disconnect" {
   name              = "/aws/lambda/${local.project}-${local.env}-ws-disconnect"
   retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
   tags              = local.tags
 }
 
@@ -461,12 +547,14 @@ resource "aws_iam_role_policy" "ws_default_api_gateway" {
 }
 
 resource "aws_lambda_function" "ws_default" {
-  function_name = "${local.project}-${local.env}-ws-default"
-  role          = aws_iam_role.ws_default.arn
-  handler       = "ws-default.handler"
-  runtime       = "nodejs20.x"
-  timeout       = 30
-  memory_size   = 256
+  function_name                  = "${local.project}-${local.env}-ws-default"
+  role                           = aws_iam_role.ws_default.arn
+  handler                        = "ws-default.handler"
+  runtime                        = "nodejs20.x"
+  timeout                        = 30
+  memory_size                    = 256
+  reserved_concurrent_executions = 100
+  kms_key_arn                    = aws_kms_key.lambda_env.arn
 
   filename         = data.archive_file.ws_default.output_path
   source_code_hash = data.archive_file.ws_default.output_base64sha256
@@ -488,6 +576,7 @@ resource "aws_lambda_function" "ws_default" {
 resource "aws_cloudwatch_log_group" "ws_default" {
   name              = "/aws/lambda/${local.project}-${local.env}-ws-default"
   retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
   tags              = local.tags
 }
 
@@ -557,12 +646,14 @@ resource "aws_iam_role_policy" "http_create_game_dynamodb" {
 }
 
 resource "aws_lambda_function" "http_create_game" {
-  function_name = "${local.project}-${local.env}-http-create-game"
-  role          = aws_iam_role.http_create_game.arn
-  handler       = "http-create-game.handler"
-  runtime       = "nodejs20.x"
-  timeout       = 30
-  memory_size   = 256
+  function_name                  = "${local.project}-${local.env}-http-create-game"
+  role                           = aws_iam_role.http_create_game.arn
+  handler                        = "http-create-game.handler"
+  runtime                        = "nodejs20.x"
+  timeout                        = 30
+  memory_size                    = 256
+  reserved_concurrent_executions = 100
+  kms_key_arn                    = aws_kms_key.lambda_env.arn
 
   filename         = data.archive_file.http_create_game.output_path
   source_code_hash = data.archive_file.http_create_game.output_base64sha256
@@ -583,6 +674,7 @@ resource "aws_lambda_function" "http_create_game" {
 resource "aws_cloudwatch_log_group" "http_create_game" {
   name              = "/aws/lambda/${local.project}-${local.env}-http-create-game"
   retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
   tags              = local.tags
 }
 
@@ -652,12 +744,14 @@ resource "aws_iam_role_policy" "http_get_game_dynamodb" {
 }
 
 resource "aws_lambda_function" "http_get_game" {
-  function_name = "${local.project}-${local.env}-http-get-game"
-  role          = aws_iam_role.http_get_game.arn
-  handler       = "http-get-game.handler"
-  runtime       = "nodejs20.x"
-  timeout       = 30
-  memory_size   = 256
+  function_name                  = "${local.project}-${local.env}-http-get-game"
+  role                           = aws_iam_role.http_get_game.arn
+  handler                        = "http-get-game.handler"
+  runtime                        = "nodejs20.x"
+  timeout                        = 30
+  memory_size                    = 256
+  reserved_concurrent_executions = 100
+  kms_key_arn                    = aws_kms_key.lambda_env.arn
 
   filename         = data.archive_file.http_get_game.output_path
   source_code_hash = data.archive_file.http_get_game.output_base64sha256
@@ -678,6 +772,7 @@ resource "aws_lambda_function" "http_get_game" {
 resource "aws_cloudwatch_log_group" "http_get_game" {
   name              = "/aws/lambda/${local.project}-${local.env}-http-get-game"
   retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
   tags              = local.tags
 }
 
@@ -747,12 +842,14 @@ resource "aws_iam_role_policy" "http_poll_dynamodb" {
 }
 
 resource "aws_lambda_function" "http_poll" {
-  function_name = "${local.project}-${local.env}-http-poll"
-  role          = aws_iam_role.http_poll.arn
-  handler       = "http-poll.handler"
-  runtime       = "nodejs20.x"
-  timeout       = 30
-  memory_size   = 256
+  function_name                  = "${local.project}-${local.env}-http-poll"
+  role                           = aws_iam_role.http_poll.arn
+  handler                        = "http-poll.handler"
+  runtime                        = "nodejs20.x"
+  timeout                        = 30
+  memory_size                    = 256
+  reserved_concurrent_executions = 100
+  kms_key_arn                    = aws_kms_key.lambda_env.arn
 
   filename         = data.archive_file.http_poll.output_path
   source_code_hash = data.archive_file.http_poll.output_base64sha256
@@ -773,6 +870,7 @@ resource "aws_lambda_function" "http_poll" {
 resource "aws_cloudwatch_log_group" "http_poll" {
   name              = "/aws/lambda/${local.project}-${local.env}-http-poll"
   retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
   tags              = local.tags
 }
 
@@ -788,10 +886,30 @@ resource "aws_apigatewayv2_api" "websocket" {
   tags = local.tags
 }
 
+resource "aws_cloudwatch_log_group" "websocket_api" {
+  name              = "/aws/apigateway/${local.project}-${local.env}-websocket"
+  retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
+  tags              = local.tags
+}
+
 resource "aws_apigatewayv2_stage" "websocket" {
   api_id      = aws_apigatewayv2_api.websocket.id
   name        = "prod"
   auto_deploy = true
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.websocket_api.arn
+    format = jsonencode({
+      requestId    = "$context.requestId"
+      ip           = "$context.identity.sourceIp"
+      requestTime  = "$context.requestTime"
+      routeKey     = "$context.routeKey"
+      status       = "$context.status"
+      connectionId = "$context.connectionId"
+      errorMessage = "$context.error.message"
+    })
+  }
 
   default_route_settings {
     throttling_burst_limit = 100
@@ -885,10 +1003,31 @@ resource "aws_apigatewayv2_api" "http" {
   tags = local.tags
 }
 
+resource "aws_cloudwatch_log_group" "http_api" {
+  name              = "/aws/apigateway/${local.project}-${local.env}-http"
+  retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
+  tags              = local.tags
+}
+
 resource "aws_apigatewayv2_stage" "http" {
   api_id      = aws_apigatewayv2_api.http.id
   name        = "prod"
   auto_deploy = true
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.http_api.arn
+    format = jsonencode({
+      requestId      = "$context.requestId"
+      ip             = "$context.identity.sourceIp"
+      requestTime    = "$context.requestTime"
+      httpMethod     = "$context.httpMethod"
+      routeKey       = "$context.routeKey"
+      status         = "$context.status"
+      responseLength = "$context.responseLength"
+      errorMessage   = "$context.error.message"
+    })
+  }
 
   tags = local.tags
 }
@@ -1011,6 +1150,13 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
   }
 }
 
+resource "aws_s3_bucket_versioning" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "logs" {
   bucket = aws_s3_bucket.logs.id
 
@@ -1024,6 +1170,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
 
     expiration {
       days = 90
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
     }
   }
 }
@@ -1081,6 +1231,23 @@ resource "aws_s3_bucket_logging" "frontend" {
 
   target_bucket = aws_s3_bucket.logs.id
   target_prefix = "s3-access-logs/"
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  rule {
+    id     = "abort-incomplete-uploads"
+    status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
 }
 
 # CloudFront Origin Access Control
