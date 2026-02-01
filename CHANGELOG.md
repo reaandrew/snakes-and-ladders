@@ -1,3 +1,28 @@
+## [1.4.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.3.0...v1.4.0) (2026-02-01)
+
+### Features
+
+* **admin:** add admin dashboard with game monitoring ([9d4ba33](https://github.com/reaandrew/snakes-and-ladders/commit/9d4ba33a519772176bc2d7ba9c9f7a51661cbfe6))
+* **ci:** add comprehensive security testing to CI pipeline ([96e3a29](https://github.com/reaandrew/snakes-and-ladders/commit/96e3a29c0a69ab9b2cfc5e59fbc32d78b49ec2b0))
+* **ui:** redesign mobile layout with big dice and top dropdown menu ([f4ec79f](https://github.com/reaandrew/snakes-and-ladders/commit/f4ec79f1e0bfdfedee4044341c4cf2259d51a6a4))
+
+### Bug Fixes
+
+* **aws_setup:** add KMS, WAFv2, and extended logs permissions ([68836f1](https://github.com/reaandrew/snakes-and-ladders/commit/68836f11b8121ccd76c6743f88848767dc6cb729))
+* **aws_setup:** add skip comments to KMS policy ([671d453](https://github.com/reaandrew/snakes-and-ladders/commit/671d453b28f69ba9161a2a9607d4aec77e248d24))
+* **ci:** add Checkov and tfsec config to skip excessive security checks ([84ac3b5](https://github.com/reaandrew/snakes-and-ladders/commit/84ac3b5a43a553f0a8d02dd41f63f7d2a6327b8f))
+* **infra:** add Checkov skip comments for AWS API limitations ([78dd7f0](https://github.com/reaandrew/snakes-and-ladders/commit/78dd7f0daf9ab8152b9e3a8f8f5e356dbef9a1be))
+* **infra:** add DynamoDB UpdateContinuousBackups permission ([ea6fb04](https://github.com/reaandrew/snakes-and-ladders/commit/ea6fb0413ece999881dbc54521d05493e50a1b7b))
+* **infra:** add KMS Encrypt/Decrypt permissions for Lambda env vars ([c4d70db](https://github.com/reaandrew/snakes-and-ladders/commit/c4d70dbcce9c97651f90890cc8b86d14ed5b400c))
+* **infra:** add Lambda PutFunctionConcurrency permission ([fa369cd](https://github.com/reaandrew/snakes-and-ladders/commit/fa369cd466ceef2be4be9b2f2c56c01876dfc8f2))
+* **infra:** add missing IAM permissions for deploy ([5caf940](https://github.com/reaandrew/snakes-and-ladders/commit/5caf9402a582f24737b49196204d32ddf729fa4d))
+* **infra:** fix remaining 7 Checkov failures ([9645b19](https://github.com/reaandrew/snakes-and-ladders/commit/9645b1932ecb074d52d997e08457af668d0e76c4))
+* **infra:** implement security controls instead of suppressing checks ([bef5c52](https://github.com/reaandrew/snakes-and-ladders/commit/bef5c524e43992b3c704e81aade511b6f6fa76ee))
+* **infra:** move checkov skip comments inside resource blocks ([8249130](https://github.com/reaandrew/snakes-and-ladders/commit/8249130b8a17437fe25c42cbf910d7d92e9167d8))
+* **infra:** use inline skip comments instead of config files ([4008a34](https://github.com/reaandrew/snakes-and-ladders/commit/4008a341f1a90be28ef44787fe2656f68535f37f))
+* **security:** add encryption, logging, WAF, and X-Ray tracing ([b28fe37](https://github.com/reaandrew/snakes-and-ladders/commit/b28fe37978e5d7a029281dd8a029af619c04ea58))
+* **websocket:** add game state sync on device wake from sleep ([b3248b5](https://github.com/reaandrew/snakes-and-ladders/commit/b3248b5c84b38d4f5d875b52b21766e044953e58))
+
 ## [1.3.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.2.0...v1.3.0) (2026-02-01)
 
 ### Features
