@@ -212,6 +212,8 @@ resource "aws_iam_role_policy" "lambda" {
 
 # CloudWatch Logs - snakes-and-ladders log groups
 resource "aws_iam_role_policy" "logs" {
+  #checkov:skip=CKV_AWS_290:logs:CreateLogDelivery requires wildcard - AWS API limitation
+  #checkov:skip=CKV_AWS_355:logs:CreateLogDelivery requires wildcard - AWS API limitation
   name = "logs-access"
   role = aws_iam_role.github_actions.id
 
@@ -541,6 +543,8 @@ resource "aws_iam_role" "api_gateway_cloudwatch" {
 }
 
 resource "aws_iam_role_policy" "api_gateway_cloudwatch" {
+  #checkov:skip=CKV_AWS_290:API Gateway service role requires broad CloudWatch access
+  #checkov:skip=CKV_AWS_355:API Gateway service role requires wildcard for dynamic log groups
   name = "cloudwatch-logs"
   role = aws_iam_role.api_gateway_cloudwatch.id
 
