@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.1.0...v1.2.0) (2026-02-01)
+
+### Features
+
+* comprehensive UI/UX overhaul with WebSocket fallback ([f9e67b9](https://github.com/reaandrew/snakes-and-ladders/commit/f9e67b9f9c87f81cdd9999718619c8e5714160b3))
+
 ## [1.1.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.0.1...v1.1.0) (2026-01-31)
 
 ### Features
