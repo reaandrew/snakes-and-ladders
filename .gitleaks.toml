@@ -1,0 +1,43 @@
+# Gitleaks configuration
+# https://github.com/gitleaks/gitleaks
+
+title = "Snakes and Ladders Gitleaks Config"
+
+[extend]
+# Use the default gitleaks rules
+useDefault = true
+
+# Additional paths to ignore
+[allowlist]
+paths = [
+    '''pnpm-lock\.yaml''',
+    '''package-lock\.json''',
+    '''\.github/workflows/.*\.yml''',
+    '''\.env\.example''',
+    '''docs/.*''',
+]
+
+# Ignore test files that may contain mock secrets
+regexTarget = "match"
+regexes = [
+    '''test.*\.(ts|tsx|js|jsx)$''',
+    '''\.test\.(ts|tsx|js|jsx)$''',
+    '''spec.*\.(ts|tsx|js|jsx)$''',
+    '''\.spec\.(ts|tsx|js|jsx)$''',
+    '''__tests__/.*''',
+    '''__mocks__/.*''',
+]
+
+# Custom rules to add on top of defaults
+[[rules]]
+id = "aws-account-id"
+description = "AWS Account ID"
+regex = '''(?i)aws.{0,20}account.{0,20}['\"]?\d{12}['\"]?'''
+tags = ["aws", "account"]
+
+[[rules]]
+id = "terraform-state-sensitive"
+description = "Terraform state file (may contain secrets)"
+regex = '''\.tfstate'''
+path = '''\.tfstate$'''
+tags = ["terraform", "state"]

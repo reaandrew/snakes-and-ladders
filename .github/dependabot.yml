@@ -1,0 +1,100 @@
+version: 2
+
+updates:
+  # npm dependencies for the monorepo
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/London'
+    open-pull-requests-limit: 10
+    groups:
+      # Group minor/patch updates to reduce PR noise
+      production-dependencies:
+        patterns:
+          - '*'
+        exclude-patterns:
+          - '@types/*'
+          - 'eslint*'
+          - 'prettier*'
+          - 'vitest*'
+          - '@testing-library/*'
+          - 'storybook*'
+          - '@storybook/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      dev-dependencies:
+        patterns:
+          - '@types/*'
+          - 'eslint*'
+          - 'prettier*'
+          - 'vitest*'
+          - '@testing-library/*'
+          - 'storybook*'
+          - '@storybook/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+    labels:
+      - 'dependencies'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(deps)'
+    reviewers:
+      - 'reaandrew'
+
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/London'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(ci)'
+    reviewers:
+      - 'reaandrew'
+
+  # Terraform providers
+  - package-ecosystem: 'terraform'
+    directory: '/infrastructure'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/London'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'terraform'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(terraform)'
+    reviewers:
+      - 'reaandrew'
+
+  - package-ecosystem: 'terraform'
+    directory: '/infrastructure/aws_setup'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/London'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'terraform'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(terraform)'
+    reviewers:
+      - 'reaandrew'
