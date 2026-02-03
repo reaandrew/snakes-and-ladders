@@ -387,7 +387,7 @@ resource "aws_launch_template" "main" {
   #checkov:skip=CKV_AWS_88:Public IP required - using public subnets to avoid NAT Gateway cost
   name          = "${local.project}-${local.env}-lt"
   image_id      = data.aws_ami.amazon_linux_2023.id
-  instance_type = "t3.small"
+  instance_type = "t3.medium"
 
   iam_instance_profile {
     arn = aws_iam_instance_profile.ec2.arn

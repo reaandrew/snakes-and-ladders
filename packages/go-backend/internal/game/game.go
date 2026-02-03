@@ -65,10 +65,19 @@ func NewGame(creatorName string) (*Game, *Player) {
 	return game, player
 }
 
+// ErrInvalidName is returned when a player name is invalid.
+var ErrInvalidName = errors.New("invalid player name")
+
 // AddPlayer adds a new player to the game.
 func (g *Game) AddPlayer(name string) (*Player, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+
+	// Validate name
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, ErrInvalidName
+	}
 
 	if g.Status != StatusWaiting {
 		return nil, ErrGameAlreadyStarted

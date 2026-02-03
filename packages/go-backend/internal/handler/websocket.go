@@ -165,6 +165,8 @@ func (h *WebSocketHandler) handleJoinGame(client *hub.Client, msg message.Client
 			h.sendError(client, message.ErrGameFull, "Game is full")
 		case game.ErrGameAlreadyStarted:
 			h.sendError(client, message.ErrGameAlreadyStarted, "Game has already started")
+		case game.ErrInvalidName:
+			h.sendError(client, message.ErrInvalidMessage, "Player name is required")
 		default:
 			h.sendError(client, message.ErrInternalError, "Failed to join game")
 		}
