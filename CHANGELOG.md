@@ -1,3 +1,9 @@
+## [1.5.2](https://github.com/reaandrew/snakes-and-ladders/compare/v1.5.1...v1.5.2) (2026-02-03)
+
+### Bug Fixes
+
+* **backend:** return joinedGame message for rejoinGame handler ([63675b9](https://github.com/reaandrew/snakes-and-ladders/commit/63675b9bbaac904296d4fc047e9d848920d85d30))
+
 ## [1.5.1](https://github.com/reaandrew/snakes-and-ladders/compare/v1.5.0...v1.5.1) (2026-02-03)
 
 ### Bug Fixes
