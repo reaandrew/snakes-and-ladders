@@ -84,6 +84,7 @@ describe('Lobby', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetch.mockReset();
+    localStorage.clear(); // Clear any saved session
     setupDefaultMocks();
   });
 

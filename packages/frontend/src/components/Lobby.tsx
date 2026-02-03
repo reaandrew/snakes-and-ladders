@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 import { useGame } from '../contexts/GameContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
@@ -10,6 +10,34 @@ import { Logo } from './ui/Logo';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+const SESSION_KEY = 'snakes-and-ladders-session';
+
+interface GameSession {
+  gameCode: string;
+  playerId: string;
+  isCreator: boolean;
+  playerName: string;
+}
+
+function saveSession(session: GameSession) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+function loadSession(): GameSession | null {
+  try {
+    const data = localStorage.getItem(SESSION_KEY);
+    if (data) {
+      return JSON.parse(data) as GameSession;
+    }
+  } catch {
+    // Invalid session data
+  }
+  return null;
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
 
 export function Lobby() {
   const [view, setView] = useState<'home' | 'create' | 'join' | 'waiting'>('home');
@@ -19,6 +47,8 @@ export function Lobby() {
   const [createdPlayerId, setCreatedPlayerId] = useState('');
   const [isCreator, setIsCreator] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isRejoining, setIsRejoining] = useState(false);
+  const hasAttemptedRejoin = useRef(false);
 
   const {
     game,
@@ -37,8 +67,52 @@ export function Lobby() {
   useEffect(() => {
     if (game && view !== 'waiting') {
       setView('waiting');
+      setIsRejoining(false);
     }
   }, [game, view]);
+
+  // Save session when game is joined (for non-creators who join via joinGame)
+  useEffect(() => {
+    if (game && currentPlayerId && !isRejoining) {
+      // Only save if not already saved (creators save immediately after HTTP create)
+      const existingSession = loadSession();
+      if (!existingSession || existingSession.playerId !== currentPlayerId) {
+        saveSession({
+          gameCode: game.code,
+          playerId: currentPlayerId,
+          isCreator: isCreator,
+          playerName: playerName.trim(),
+        });
+      }
+    }
+  }, [game, currentPlayerId, isCreator, playerName, isRejoining]);
+
+  // Check for existing session on mount and try to rejoin
+  useEffect(() => {
+    if (hasAttemptedRejoin.current) return;
+
+    const session = loadSession();
+    if (session && !game) {
+      hasAttemptedRejoin.current = true;
+      setIsRejoining(true);
+      setCreatedGameCode(session.gameCode);
+      setCreatedPlayerId(session.playerId);
+      setIsCreator(session.isCreator);
+      setPlayerName(session.playerName);
+      connect(WS_URL);
+    }
+  }, [connect, game]);
+
+  // Clear session on error (game not found, player not found, etc.)
+  useEffect(() => {
+    if (error && isRejoining) {
+      clearSession();
+      setIsRejoining(false);
+      setCreatedGameCode('');
+      setCreatedPlayerId('');
+      setIsCreator(false);
+    }
+  }, [error, isRejoining]);
 
   const handleCreateGame = async () => {
     if (!playerName.trim()) return;
@@ -60,6 +134,14 @@ export function Lobby() {
       setCreatedGameCode(data.game.code);
       setCreatedPlayerId(data.playerId);
       setIsCreator(true);
+
+      // Save session to localStorage for reconnection on refresh
+      saveSession({
+        gameCode: data.game.code,
+        playerId: data.playerId,
+        isCreator: true,
+        playerName: playerName.trim(),
+      });
 
       // Connect to WebSocket and join the game
       connect(WS_URL);
@@ -93,12 +175,14 @@ export function Lobby() {
   };
 
   const handleBack = () => {
+    clearSession(); // Clear saved session when leaving game
     setView('home');
     setPlayerName('');
     setGameCode('');
     setCreatedGameCode('');
     setCreatedPlayerId('');
     setIsCreator(false);
+    setIsRejoining(false);
     resetGame();
   };
 
@@ -217,6 +301,20 @@ export function Lobby() {
               Back
             </Button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while attempting to rejoin
+  if (isRejoining && !game) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl bg-slate-800/50 p-8 backdrop-blur">
+          <div className="mb-8">
+            <Logo size="lg" showSubtitle />
+          </div>
+          <p className="text-center text-slate-400">Reconnecting to game...</p>
         </div>
       </div>
     );
