@@ -1,3 +1,15 @@
+## [1.5.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.4.0...v1.5.0) (2026-02-03)
+
+### Features
+
+* migrate backend to Go on EC2 with Auto Scaling ([528f7f5](https://github.com/reaandrew/snakes-and-ladders/commit/528f7f5e282541d3f72c224196456198eddbe7e4))
+
+### Bug Fixes
+
+* **infra:** add EC2/VPC, ELB, Auto Scaling IAM permissions for GitHub Actions ([775be48](https://github.com/reaandrew/snakes-and-ladders/commit/775be487d640aed392e3d6da171d888b8ef4d919))
+* **infra:** add missing ELB, CloudWatch, and logs IAM permissions ([23ac367](https://github.com/reaandrew/snakes-and-ladders/commit/23ac3674ca8277e958a54ce0442fd1b4e33f8083))
+* **infra:** add S3 backend and EC2 IAM permissions to aws_setup ([476269a](https://github.com/reaandrew/snakes-and-ladders/commit/476269af66a6aca08bc544f25d504409b80ec28b))
+
 ## [1.4.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.3.0...v1.4.0) (2026-02-01)
 
 ### Features
