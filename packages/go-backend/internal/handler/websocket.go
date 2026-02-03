@@ -251,8 +251,6 @@ func (h *WebSocketHandler) handleRollDice(client *hub.Client, msg message.Client
 		switch err {
 		case game.ErrGameNotStarted:
 			h.sendError(client, message.ErrGameNotStarted, "Game has not started")
-		case game.ErrNotYourTurn:
-			h.sendError(client, message.ErrNotYourTurn, "Not your turn")
 		default:
 			h.sendError(client, message.ErrInternalError, "Failed to roll dice")
 		}
@@ -276,7 +274,6 @@ func (h *WebSocketHandler) handleRollDice(client *hub.Client, msg message.Client
 		PreviousPosition: prevPos,
 		NewPosition:      newPos,
 		Effect:           moveEffect,
-		NextPlayerID:     g.GetCurrentTurnPlayerID(),
 	}
 	h.hub.BroadcastToGame(code, moveMsg)
 

@@ -258,7 +258,7 @@ export function GameBoard() {
   }, [players, board, canvasSize]);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col lg:flex-row">
+    <div data-testid="game-board" className="flex min-h-[100dvh] flex-col lg:flex-row">
       {/* Mobile header with game info and menu */}
       <div className="flex items-center justify-between bg-slate-800/50 px-4 py-2 lg:hidden">
         <span className="font-mono text-lg font-bold text-game-primary">{game?.code}</span>

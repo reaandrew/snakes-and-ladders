@@ -34,6 +34,7 @@
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "@semantic-release/changelog": "^6.0.0",
     "@semantic-release/git": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",

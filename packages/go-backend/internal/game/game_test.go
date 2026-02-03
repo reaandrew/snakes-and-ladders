@@ -142,40 +142,56 @@ func TestRollDiceNotStarted(t *testing.T) {
 	}
 }
 
-func TestRollDiceNotYourTurn(t *testing.T) {
-	game, _ := NewGame("Alice")
-	bob, _ := game.AddPlayer("Bob")
-	game.Start(game.CreatorID)
-
-	// Alice's turn first, Bob can't roll
-	_, _, _, _, _, err := game.RollDice(bob.ID)
-	if err != ErrNotYourTurn {
-		t.Errorf("Expected ErrNotYourTurn, got %v", err)
-	}
-}
-
-func TestTurnRotation(t *testing.T) {
+// TestRaceGameplay tests that this is a RACE game where anyone can roll anytime
+func TestRaceGameplay(t *testing.T) {
 	game, alice := NewGame("Alice")
 	bob, _ := game.AddPlayer("Bob")
 	game.Start(alice.ID)
 
-	// Alice's turn
-	if game.GetCurrentTurnPlayerID() != alice.ID {
-		t.Error("Should be Alice's turn first")
+	// Both players should be able to roll - this is a RACE, not turn-based!
+	_, _, _, _, _, err := game.RollDice(bob.ID)
+	if err != nil {
+		t.Errorf("Bob should be able to roll in a race game: %v", err)
 	}
 
-	game.RollDice(alice.ID)
-
-	// Now Bob's turn
-	if game.GetCurrentTurnPlayerID() != bob.ID {
-		t.Error("Should be Bob's turn after Alice rolls")
+	_, _, _, _, _, err = game.RollDice(alice.ID)
+	if err != nil {
+		t.Errorf("Alice should be able to roll in a race game: %v", err)
 	}
 
-	game.RollDice(bob.ID)
+	// Both can roll multiple times in any order
+	_, _, _, _, _, err = game.RollDice(bob.ID)
+	if err != nil {
+		t.Errorf("Bob should be able to roll again: %v", err)
+	}
 
-	// Back to Alice
-	if game.GetCurrentTurnPlayerID() != alice.ID {
-		t.Error("Should be Alice's turn after Bob rolls")
+	_, _, _, _, _, err = game.RollDice(bob.ID)
+	if err != nil {
+		t.Errorf("Bob should be able to roll multiple times in a row: %v", err)
+	}
+}
+
+// TestSimultaneousRolling tests that multiple players can roll rapidly
+func TestSimultaneousRolling(t *testing.T) {
+	game, alice := NewGame("Alice")
+	bob, _ := game.AddPlayer("Bob")
+	charlie, _ := game.AddPlayer("Charlie")
+	game.Start(alice.ID)
+
+	// Simulate rapid rolling from all players
+	for i := 0; i < 10; i++ {
+		_, _, _, _, _, err := game.RollDice(alice.ID)
+		if err != nil {
+			t.Errorf("Alice roll %d failed: %v", i, err)
+		}
+		_, _, _, _, _, err = game.RollDice(bob.ID)
+		if err != nil {
+			t.Errorf("Bob roll %d failed: %v", i, err)
+		}
+		_, _, _, _, _, err = game.RollDice(charlie.ID)
+		if err != nil {
+			t.Errorf("Charlie roll %d failed: %v", i, err)
+		}
 	}
 }
 

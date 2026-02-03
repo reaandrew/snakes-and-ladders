@@ -24,7 +24,6 @@ var (
 	ErrGameNotStarted     = errors.New("game has not started")
 	ErrNotGameCreator     = errors.New("only the game creator can start the game")
 	ErrPlayerNotFound     = errors.New("player not found")
-	ErrNotYourTurn        = errors.New("not your turn")
 	ErrInvalidDiceRoll    = errors.New("invalid dice roll")
 )
 
@@ -143,6 +142,7 @@ func (g *Game) Start(playerID string) error {
 }
 
 // RollDice processes a dice roll for a player.
+// This is a RACE game - any player can roll at any time!
 func (g *Game) RollDice(playerID string) (diceRoll, prevPos, newPos int, effect *MoveEffect, isWinner bool, err error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -152,26 +152,20 @@ func (g *Game) RollDice(playerID string) (diceRoll, prevPos, newPos int, effect 
 		return
 	}
 
-	// Find player and check turn
-	playerIdx := -1
-	for i, p := range g.Players {
+	// Find player - no turn check, this is a race!
+	var player *Player
+	for _, p := range g.Players {
 		if p.ID == playerID {
-			playerIdx = i
+			player = p
 			break
 		}
 	}
 
-	if playerIdx == -1 {
+	if player == nil {
 		err = ErrPlayerNotFound
 		return
 	}
 
-	if playerIdx != g.CurrentTurnIdx {
-		err = ErrNotYourTurn
-		return
-	}
-
-	player := g.Players[playerIdx]
 	prevPos = player.Position
 
 	// Roll dice (1-6)
@@ -187,10 +181,8 @@ func (g *Game) RollDice(playerID string) (diceRoll, prevPos, newPos int, effect 
 	if isWinner {
 		g.Status = StatusFinished
 		g.WinnerID = playerID
-	} else {
-		// Move to next player's turn
-		g.CurrentTurnIdx = (g.CurrentTurnIdx + 1) % len(g.Players)
 	}
+	// No turn advancement - everyone races independently!
 
 	g.UpdatedAt = time.Now()
 	return

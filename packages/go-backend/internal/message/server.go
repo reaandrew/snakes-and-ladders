@@ -26,7 +26,6 @@ const (
 	ErrPlayerNotFound     = "PLAYER_NOT_FOUND"
 	ErrInvalidMessage     = "INVALID_MESSAGE"
 	ErrInternalError      = "INTERNAL_ERROR"
-	ErrNotYourTurn        = "NOT_YOUR_TURN"
 )
 
 // JoinedGameMessage is sent to a player when they successfully join a game.
@@ -51,6 +50,7 @@ type PlayerLeftMessage struct {
 }
 
 // PlayerMovedMessage is broadcast when a player moves.
+// This is a RACE game - no turns, everyone rolls independently!
 type PlayerMovedMessage struct {
 	Type             string      `json:"type"`
 	PlayerID         string      `json:"playerId"`
@@ -59,7 +59,6 @@ type PlayerMovedMessage struct {
 	PreviousPosition int         `json:"previousPosition"`
 	NewPosition      int         `json:"newPosition"`
 	Effect           *MoveEffect `json:"effect"`
-	NextPlayerID     string      `json:"nextPlayerId,omitempty"`
 }
 
 // MoveEffect represents a snake or ladder effect.

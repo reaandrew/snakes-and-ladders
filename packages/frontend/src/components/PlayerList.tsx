@@ -13,6 +13,7 @@ export function PlayerList({ players, currentPlayerId }: PlayerListProps) {
         {players.map((player) => (
           <li
             key={player.id}
+            data-testid="player-list-item"
             className={`flex items-center gap-3 rounded-lg p-2 ${
               player.id === currentPlayerId ? 'bg-slate-600/50' : ''
             }`}
