@@ -4,11 +4,24 @@
 **Test Framework:** Playwright
 **Target:** https://snakes.techar.ch
 **Browser:** Chromium
-**Total Tests:** 32
-**Passed:** 32
+**Total Tests:** 38
+**Passed:** 38
 **Failed:** 0
-**Duration:** ~6.5 minutes
-**Screenshots Generated:** 52
+**Duration:** ~8 minutes
+**Screenshots Generated:** 52+
+
+---
+
+## IMPORTANT: This is a RACE Game - Not Turn-Based!
+
+This game is designed as a **simultaneous racing game** for up to 200 players:
+
+- **Everyone rolls simultaneously** - no waiting for your turn
+- **First to position 100 wins** - it's a race!
+- **Click as fast as you want** - limited only by dice animation cooldown
+- **Real-time position sync** - see all players moving live
+
+Tests verify that ALL players can roll dice at the same time, not just the "current player".
 
 ---
 
@@ -28,6 +41,14 @@
 | Two players can join and start game | ✓ Pass | 9.8s | Full multiplayer flow: create, join, start |
 | No duplicate players | ✓ Pass | 5.0s | Creator appears exactly once in player list |
 
+### Race Mechanics Tests (3 tests)
+
+| Test | Status | Duration | Description |
+|------|--------|----------|-------------|
+| All players roll simultaneously | ✓ Pass | 25.3s | 3 players race to 100, everyone can roll at any time |
+| Reconnection syncs ALL positions | ✓ Pass | 30.1s | After refresh, player sees all other players' pieces |
+| 6-player rapid simultaneous rolling | ✓ Pass | 45.8s | Maximum players all clicking dice as fast as possible |
+
 ### Multiplayer Stress Tests (5 tests)
 
 | Test | Status | Duration | Description |
@@ -37,6 +58,13 @@
 | Reconnect after refresh | ✓ Pass | 18.5s | Mid-game page refresh recovery for multiple players |
 | Rapid dice rolling | ✓ Pass | 17.9s | 20 rapid click bursts from both players simultaneously |
 | Simultaneous game creation | ✓ Pass | 5.1s | 3 games created at once, verifies unique game codes |
+
+### Large Scale Load Tests (2 tests)
+
+| Test | Status | Duration | Description |
+|------|--------|----------|-------------|
+| 20 simultaneous games | ✓ Pass | 2m 15s | 20 games created with 2 players each, all unique codes |
+| 30 rapid game creation | ✓ Pass | 3m 42s | Rapid sequential game creation stress test |
 
 ### Edge Cases - Input Validation (4 tests)
 
@@ -88,7 +116,21 @@
 
 ---
 
-## Screenshots Generated (52 total)
+## Screenshots Generated (62+ total)
+
+### Race Mechanics Screenshots
+| Screenshot | Description |
+|------------|-------------|
+| `race-mechanics-all-rolling.png` | 3 players racing simultaneously |
+| `race-6players-start.png` | 6-player race just started |
+| `race-6players-during.png` | 6-player race in progress |
+| `race-6players-end.png` | 6-player race completed |
+| `sync-before-refresh-creator.png` | Creator view before refresh |
+| `sync-before-refresh-joiner.png` | Joiner view before refresh |
+| `sync-after-refresh-creator.png` | Creator view after reconnecting |
+| `sync-after-refresh-joiner.png` | Joiner view after reconnecting |
+| `sync-final-creator-view.png` | Final state - creator perspective |
+| `sync-final-joiner-view.png` | Final state - joiner perspective |
 
 ### Edge Case Screenshots
 | Screenshot | Description |
@@ -135,12 +177,13 @@
 
 | Feature | Test Coverage |
 |---------|---------------|
-| Game Creation | ✓ Single player, ✓ Multiple simultaneous games, ✓ 20 rapid creations |
+| **Race Mechanics** | ✓ Simultaneous rolling, ✓ No turn waiting, ✓ All players roll at once |
+| Game Creation | ✓ Single player, ✓ Multiple simultaneous games, ✓ 30 rapid creations |
 | Player Joining | ✓ Valid join, ✓ Invalid code error, ✓ Sequential joins, ✓ Late join error |
 | Session Persistence | ✓ Page refresh in lobby, ✓ Page refresh mid-game, ✓ Rapid refresh spam |
 | Player Validation | ✓ Empty name, ✓ Whitespace, ✓ Max length, ✓ Special chars, ✓ Emoji |
 | Game Start | ✓ Creator can start with 2+ players |
-| Multiplayer Sync | ✓ 2-6 players, ✓ 10 simultaneous games |
+| Multiplayer Sync | ✓ 2-6 players, ✓ 20 simultaneous games |
 | WebSocket Stability | ✓ Reconnection, ✓ Rapid messages, ✓ Creator disconnect |
 | Responsive Design | ✓ 6 device sizes, ✓ 6 key screens |
 
@@ -163,6 +206,7 @@
 | `e2e/game.spec.ts` | 9 | Core game functionality tests |
 | `e2e/multiplayer-stress.spec.ts` | 5 | Stress and load testing |
 | `e2e/edge-cases.spec.ts` | 18 | Edge cases, validation, responsive screenshots |
+| `e2e/race-mechanics.spec.ts` | 6 | Race mechanics (simultaneous rolling) and load tests |
 
 ---
 
@@ -183,6 +227,9 @@ npx playwright test multiplayer-stress
 
 # Run edge case tests only
 npx playwright test edge-cases
+
+# Run race mechanics tests only
+npx playwright test race-mechanics
 
 # Generate HTML report
 npx playwright test --reporter=html
