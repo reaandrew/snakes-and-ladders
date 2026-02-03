@@ -1,3 +1,9 @@
+## [1.5.1](https://github.com/reaandrew/snakes-and-ladders/compare/v1.5.0...v1.5.1) (2026-02-03)
+
+### Bug Fixes
+
+* **frontend:** prevent duplicate player when creator joins game ([e134a91](https://github.com/reaandrew/snakes-and-ladders/commit/e134a91f841eb01a2545a237caa7583947483fc2))
+
 ## [1.5.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.4.0...v1.5.0) (2026-02-03)
 
 ### Features
