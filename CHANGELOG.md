@@ -1,3 +1,9 @@
+## [1.5.3](https://github.com/reaandrew/snakes-and-ladders/compare/v1.5.2...v1.5.3) (2026-02-03)
+
+### Bug Fixes
+
+* **backend:** upgrade to t3.medium and add player name validation ([4610e18](https://github.com/reaandrew/snakes-and-ladders/commit/4610e18cac19478c7e5bb591ed85800a4d92910f))
+
 ## [1.5.2](https://github.com/reaandrew/snakes-and-ladders/compare/v1.5.1...v1.5.2) (2026-02-03)
 
 ### Bug Fixes
