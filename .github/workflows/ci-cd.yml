@@ -20,6 +20,7 @@ concurrency:
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '9'
+  GO_VERSION: '1.22'
 
 jobs:
   lint-format:
@@ -235,6 +236,50 @@ jobs:
           name: shared-coverage
           path: packages/shared/coverage/
 
+  test-go:
+    name: Test Go Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: packages/go-backend/go.sum
+
+      - name: Run Tests
+        working-directory: packages/go-backend
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-backend-coverage
+          path: packages/go-backend/coverage.out
+
+  build-go:
+    name: Build Go Backend
+    runs-on: ubuntu-latest
+    needs: [test-go]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: packages/go-backend/go.sum
+
+      - name: Build Binary
+        working-directory: packages/go-backend
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o snakes-server ./cmd/server
+
+      - name: Upload Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-backend-binary
+          path: packages/go-backend/snakes-server
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -391,6 +436,7 @@ jobs:
     needs:
       [
         build,
+        build-go,
         terraform-validate,
         terraform-security,
         security-scan,
@@ -430,6 +476,12 @@ jobs:
           name: backend-dist
           path: packages/backend/dist/
 
+      - name: Download Go Backend Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: go-backend-binary
+          path: packages/go-backend/
+
       - name: Terraform Init
         run: terraform init
         working-directory: infrastructure
@@ -442,11 +494,25 @@ jobs:
         run: terraform apply -auto-approve tfplan
         working-directory: infrastructure
 
+      - name: Deploy Go Backend to S3
+        run: |
+          DEPLOY_BUCKET=$(terraform output -raw deploy_bucket)
+          aws s3 cp ../packages/go-backend/snakes-server "s3://$DEPLOY_BUCKET/snakes-server"
+        working-directory: infrastructure
+
+      - name: Trigger ASG Instance Refresh
+        run: |
+          ASG_NAME=$(terraform output -raw asg_name)
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "$ASG_NAME" \
+            --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 120}'
+        working-directory: infrastructure
+
       - name: Build Frontend with API URLs
         run: |
           pnpm install --frozen-lockfile
-          export VITE_API_URL=$(cd infrastructure && terraform output -raw http_api_url)
-          export VITE_WS_URL=$(cd infrastructure && terraform output -raw websocket_url)
+          export VITE_API_URL=$(cd infrastructure && terraform output -raw api_endpoint)
+          export VITE_WS_URL=$(cd infrastructure && terraform output -raw api_websocket_url)
           echo "Building frontend with API_URL=$VITE_API_URL, WS_URL=$VITE_WS_URL"
           pnpm --filter @snakes-and-ladders/shared build
           pnpm --filter @snakes-and-ladders/frontend build

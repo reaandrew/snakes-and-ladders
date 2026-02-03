@@ -1492,6 +1492,7 @@ resource "aws_wafv2_web_acl" "cloudfront" {
 }
 
 # WAF Logging
+#tfsec:ignore:aws-cloudwatch-log-group-customer-key
 resource "aws_cloudwatch_log_group" "waf" {
   #checkov:skip=CKV_AWS_338:14-day retention is sufficient for game logs - cost optimization
   #checkov:skip=CKV_AWS_158:WAF logs in us-east-1 - separate KMS key adds complexity
