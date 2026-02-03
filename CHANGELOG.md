@@ -1,3 +1,9 @@
+## [1.6.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.5.3...v1.6.0) (2026-02-03)
+
+### Features
+
+* **frontend:** persist game session in localStorage for page refresh ([1d4eea2](https://github.com/reaandrew/snakes-and-ladders/commit/1d4eea2d66dc0c26776923cb1828c0ba10817167))
+
 ## [1.5.3](https://github.com/reaandrew/snakes-and-ladders/compare/v1.5.2...v1.5.3) (2026-02-03)
 
 ### Bug Fixes
