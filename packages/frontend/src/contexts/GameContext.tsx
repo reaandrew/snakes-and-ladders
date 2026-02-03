@@ -240,6 +240,19 @@ export function GameProvider({ children }: GameProviderProps) {
         });
         break;
 
+      case 'gameState':
+        // gameState is sent in response to rejoinGame - update game state
+        // The playerId is already known from the rejoin request
+        dispatch({
+          type: 'SET_GAME',
+          payload: {
+            game: message.game,
+            players: message.players,
+            playerId: state.currentPlayerId || message.players?.[0]?.id,
+          },
+        });
+        break;
+
       case 'playerJoined':
         dispatch({ type: 'PLAYER_JOINED', payload: message.player });
         break;

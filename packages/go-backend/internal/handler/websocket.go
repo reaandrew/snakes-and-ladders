@@ -214,20 +214,20 @@ func (h *WebSocketHandler) handleRejoinGame(client *hub.Client, msg message.Clie
 	g.SetPlayerConnected(msg.PlayerID, true)
 	h.hub.JoinGame(client, code, msg.PlayerID)
 
-	// Send current game state
+	// Send joinedGame message (same as join, so frontend handles it consistently)
 	players := g.GetPlayers()
 	playerInfos := make([]message.PlayerInfo, len(players))
 	for i, p := range players {
 		playerInfos[i] = playerToInfo(p, code)
 	}
 
-	stateMsg := message.GameStateMessage{
-		Type:          message.TypeGameState,
-		Game:          gameToInfo(g),
-		Players:       playerInfos,
-		CurrentTurnID: g.GetCurrentTurnPlayerID(),
+	joinedMsg := message.JoinedGameMessage{
+		Type:     message.TypeJoinedGame,
+		PlayerID: msg.PlayerID,
+		Game:     gameToInfo(g),
+		Players:  playerInfos,
 	}
-	h.hub.SendToClient(client, stateMsg)
+	h.hub.SendToClient(client, joinedMsg)
 }
 
 func (h *WebSocketHandler) handleRollDice(client *hub.Client, msg message.ClientMessage) {
