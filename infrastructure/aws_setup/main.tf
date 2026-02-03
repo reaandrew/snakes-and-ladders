@@ -7,6 +7,13 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "s3" {
+    bucket  = "snakes-and-ladders-terraform-state"
+    key     = "aws-setup/terraform.tfstate"
+    region  = "eu-west-2"
+    encrypt = true
+  }
 }
 
 provider "aws" {
@@ -456,12 +463,12 @@ resource "aws_iam_role_policy" "iam" {
   })
 }
 
-# EC2/VPC - for EC2 backend infrastructure
-resource "aws_iam_role_policy" "ec2" {
+# EC2/VPC - for EC2 backend infrastructure (managed policy to avoid inline limit)
+resource "aws_iam_policy" "ec2" {
   #checkov:skip=CKV_AWS_290:CI/CD deploy role needs broad EC2/VPC permissions for infrastructure management
   #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for dynamic EC2/VPC resources
-  name = "ec2-access"
-  role = aws_iam_role.github_actions.id
+  name        = "snakes-and-ladders-ec2-access"
+  description = "EC2/VPC permissions for GitHub Actions CI/CD"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -469,31 +476,7 @@ resource "aws_iam_role_policy" "ec2" {
       {
         Effect = "Allow"
         Action = [
-          "ec2:DescribeAvailabilityZones",
-          "ec2:DescribeImages",
-          "ec2:DescribeInstances",
-          "ec2:DescribeInstanceTypes",
-          "ec2:DescribeKeyPairs",
-          "ec2:DescribeLaunchTemplates",
-          "ec2:DescribeLaunchTemplateVersions",
-          "ec2:DescribeSecurityGroups",
-          "ec2:DescribeSecurityGroupRules",
-          "ec2:DescribeSubnets",
-          "ec2:DescribeVpcs",
-          "ec2:DescribeInternetGateways",
-          "ec2:DescribeRouteTables",
-          "ec2:DescribeNetworkAcls",
-          "ec2:DescribeNetworkInterfaces",
-          "ec2:DescribeTags",
-          "ec2:DescribeAccountAttributes",
-          "ec2:DescribeAddresses",
-          "ec2:DescribeVpcAttribute"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
+          "ec2:Describe*",
           "ec2:CreateVpc",
           "ec2:DeleteVpc",
           "ec2:ModifyVpcAttribute",
@@ -516,9 +499,6 @@ resource "aws_iam_role_policy" "ec2" {
           "ec2:AuthorizeSecurityGroupEgress",
           "ec2:RevokeSecurityGroupIngress",
           "ec2:RevokeSecurityGroupEgress",
-          "ec2:ModifySecurityGroupRules",
-          "ec2:UpdateSecurityGroupRuleDescriptionsIngress",
-          "ec2:UpdateSecurityGroupRuleDescriptionsEgress",
           "ec2:CreateLaunchTemplate",
           "ec2:DeleteLaunchTemplate",
           "ec2:CreateLaunchTemplateVersion",
@@ -529,58 +509,19 @@ resource "aws_iam_role_policy" "ec2" {
           "ec2:DeleteTags"
         ]
         Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:RequestTag/Project" = "snakes-and-ladders"
-          }
-        }
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "ec2:CreateVpc",
-          "ec2:DeleteVpc",
-          "ec2:ModifyVpcAttribute",
-          "ec2:CreateSubnet",
-          "ec2:DeleteSubnet",
-          "ec2:ModifySubnetAttribute",
-          "ec2:CreateInternetGateway",
-          "ec2:DeleteInternetGateway",
-          "ec2:AttachInternetGateway",
-          "ec2:DetachInternetGateway",
-          "ec2:CreateRouteTable",
-          "ec2:DeleteRouteTable",
-          "ec2:AssociateRouteTable",
-          "ec2:DisassociateRouteTable",
-          "ec2:CreateRoute",
-          "ec2:DeleteRoute",
-          "ec2:CreateSecurityGroup",
-          "ec2:DeleteSecurityGroup",
-          "ec2:AuthorizeSecurityGroupIngress",
-          "ec2:AuthorizeSecurityGroupEgress",
-          "ec2:RevokeSecurityGroupIngress",
-          "ec2:RevokeSecurityGroupEgress",
-          "ec2:ModifySecurityGroupRules",
-          "ec2:UpdateSecurityGroupRuleDescriptionsIngress",
-          "ec2:UpdateSecurityGroupRuleDescriptionsEgress",
-          "ec2:CreateLaunchTemplate",
-          "ec2:DeleteLaunchTemplate",
-          "ec2:CreateLaunchTemplateVersion",
-          "ec2:ModifyLaunchTemplate",
-          "ec2:RunInstances",
-          "ec2:TerminateInstances",
-          "ec2:CreateTags",
-          "ec2:DeleteTags"
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:ResourceTag/Project" = "snakes-and-ladders"
-          }
-        }
       }
     ]
   })
+
+  tags = {
+    Name    = "snakes-and-ladders-ec2-access"
+    Project = "snakes-and-ladders"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ec2" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = aws_iam_policy.ec2.arn
 }
 
 # Elastic Load Balancing - for ALB
