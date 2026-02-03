@@ -146,6 +146,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
 interface GameContextType extends GameState {
   joinGame: (gameCode: string, playerName: string) => void;
+  rejoinGame: (gameCode: string, playerId: string) => void;
   startGame: () => void;
   rollDice: () => void;
   resetGame: () => void;
@@ -286,6 +287,18 @@ export function GameProvider({ children }: GameProviderProps) {
     [isConnected, sendMessage]
   );
 
+  const rejoinGame = useCallback(
+    (gameCode: string, playerId: string) => {
+      if (!isConnected) {
+        dispatch({ type: 'SET_ERROR', payload: 'Not connected to server' });
+        return;
+      }
+      dispatch({ type: 'SET_LOADING', payload: true });
+      sendMessage({ action: 'rejoinGame', gameCode, playerId });
+    },
+    [isConnected, sendMessage]
+  );
+
   const startGame = useCallback(() => {
     if (!state.game || !state.currentPlayerId) return;
     sendMessage({
@@ -313,6 +326,7 @@ export function GameProvider({ children }: GameProviderProps) {
       value={{
         ...state,
         joinGame,
+        rejoinGame,
         startGame,
         rollDice,
         resetGame,

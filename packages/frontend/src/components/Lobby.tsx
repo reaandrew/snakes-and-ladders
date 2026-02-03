@@ -16,11 +16,21 @@ export function Lobby() {
   const [playerName, setPlayerName] = useState('');
   const [gameCode, setGameCode] = useState('');
   const [createdGameCode, setCreatedGameCode] = useState('');
+  const [createdPlayerId, setCreatedPlayerId] = useState('');
   const [isCreator, setIsCreator] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
-  const { game, players, currentPlayerId, joinGame, startGame, error, isLoading, resetGame } =
-    useGame();
+  const {
+    game,
+    players,
+    currentPlayerId,
+    joinGame,
+    rejoinGame,
+    startGame,
+    error,
+    isLoading,
+    resetGame,
+  } = useGame();
   const { connect, isConnected } = useWebSocket();
 
   // Auto-transition to waiting room when game is joined
@@ -48,6 +58,7 @@ export function Lobby() {
 
       const data = (await response.json()) as { game: { code: string }; playerId: string };
       setCreatedGameCode(data.game.code);
+      setCreatedPlayerId(data.playerId);
       setIsCreator(true);
 
       // Connect to WebSocket and join the game
@@ -58,12 +69,12 @@ export function Lobby() {
     }
   };
 
-  // Join game after WebSocket connection
+  // Rejoin game after WebSocket connection (for creator who already has a playerId)
   useEffect(() => {
-    if (isConnected && createdGameCode && !game) {
-      joinGame(createdGameCode, playerName);
+    if (isConnected && createdGameCode && createdPlayerId && !game) {
+      rejoinGame(createdGameCode, createdPlayerId);
     }
-  }, [isConnected, createdGameCode, game, joinGame, playerName]);
+  }, [isConnected, createdGameCode, createdPlayerId, game, rejoinGame]);
 
   const handleJoinGame = () => {
     if (!playerName.trim() || !gameCode.trim()) return;
@@ -86,6 +97,7 @@ export function Lobby() {
     setPlayerName('');
     setGameCode('');
     setCreatedGameCode('');
+    setCreatedPlayerId('');
     setIsCreator(false);
     resetGame();
   };

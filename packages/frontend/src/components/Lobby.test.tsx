@@ -51,12 +51,14 @@ const mockUseWebSocket = useWebSocket as Mock;
 
 describe('Lobby', () => {
   let joinGameMock: Mock;
+  let rejoinGameMock: Mock;
   let startGameMock: Mock;
   let resetGameMock: Mock;
   let connectMock: Mock;
 
   const setupDefaultMocks = () => {
     joinGameMock = vi.fn();
+    rejoinGameMock = vi.fn();
     startGameMock = vi.fn();
     resetGameMock = vi.fn();
     connectMock = vi.fn();
@@ -66,6 +68,7 @@ describe('Lobby', () => {
       players: [],
       currentPlayerId: null,
       joinGame: joinGameMock,
+      rejoinGame: rejoinGameMock,
       startGame: startGameMock,
       error: null,
       isLoading: false,
@@ -281,6 +284,7 @@ describe('Lobby', () => {
         players: [],
         currentPlayerId: null,
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: null,
         isLoading: true,
@@ -360,6 +364,7 @@ describe('Lobby', () => {
         players: [],
         currentPlayerId: null,
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: 'Game not found',
         isLoading: false,
@@ -378,6 +383,7 @@ describe('Lobby', () => {
         players: [],
         currentPlayerId: null,
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: null,
         isLoading: true,
@@ -410,6 +416,7 @@ describe('Lobby', () => {
         players: [createMockPlayer()],
         currentPlayerId: 'player-1',
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: null,
         isLoading: false,
@@ -428,6 +435,7 @@ describe('Lobby', () => {
         players: [createMockPlayer()],
         currentPlayerId: 'player-1',
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: null,
         isLoading: false,
@@ -446,6 +454,7 @@ describe('Lobby', () => {
         players: [createMockPlayer()],
         currentPlayerId: 'player-1',
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: null,
         isLoading: false,
@@ -464,6 +473,7 @@ describe('Lobby', () => {
         players: [createMockPlayer()],
         currentPlayerId: 'player-1',
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: null,
         isLoading: false,
@@ -481,6 +491,7 @@ describe('Lobby', () => {
         players: [createMockPlayer()],
         currentPlayerId: 'player-1',
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: null,
         isLoading: false,
@@ -500,6 +511,7 @@ describe('Lobby', () => {
         players: [createMockPlayer()],
         currentPlayerId: 'player-1',
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: 'Connection lost',
         isLoading: false,
@@ -518,7 +530,7 @@ describe('Lobby', () => {
         ok: true,
         json: () => ({
           game: { code: 'XYZ789' },
-          playerId: 'player-1',
+          playerId: 'creator-player-id',
         }),
       });
 
@@ -541,8 +553,9 @@ describe('Lobby', () => {
 
       rerender(<Lobby />);
 
+      // Creator should use rejoinGame with their playerId from create response
       await waitFor(() => {
-        expect(joinGameMock).toHaveBeenCalledWith('XYZ789', 'TestPlayer');
+        expect(rejoinGameMock).toHaveBeenCalledWith('XYZ789', 'creator-player-id');
       });
     });
 
@@ -583,6 +596,7 @@ describe('Lobby', () => {
         players: [createMockPlayer()],
         currentPlayerId: 'player-1',
         joinGame: joinGameMock,
+        rejoinGame: rejoinGameMock,
         startGame: startGameMock,
         error: null,
         isLoading: false,
