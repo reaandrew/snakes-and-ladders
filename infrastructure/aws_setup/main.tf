@@ -258,6 +258,7 @@ resource "aws_iam_role_policy" "logs" {
         Resource = [
           "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/snakes-and-ladders-*",
           "arn:aws:logs:${var.aws_region}:*:log-group:/aws/apigateway/snakes-and-ladders-*",
+          "arn:aws:logs:${var.aws_region}:*:log-group:/snakes-and-ladders/*",
           "arn:aws:logs:us-east-1:*:log-group:aws-waf-logs-snakes-and-ladders-*"
         ]
       },
@@ -411,6 +412,288 @@ resource "aws_iam_role_policy" "iam" {
         Resource = [
           "arn:aws:iam::*:role/snakes-and-ladders-*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateInstanceProfile",
+          "iam:DeleteInstanceProfile",
+          "iam:GetInstanceProfile",
+          "iam:AddRoleToInstanceProfile",
+          "iam:RemoveRoleFromInstanceProfile",
+          "iam:TagInstanceProfile",
+          "iam:UntagInstanceProfile"
+        ]
+        Resource = [
+          "arn:aws:iam::*:instance-profile/snakes-and-ladders-*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateServiceLinkedRole"
+        ]
+        Resource = "arn:aws:iam::*:role/aws-service-role/autoscaling.amazonaws.com/*"
+        Condition = {
+          StringLike = {
+            "iam:AWSServiceName" = "autoscaling.amazonaws.com"
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateServiceLinkedRole"
+        ]
+        Resource = "arn:aws:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/*"
+        Condition = {
+          StringLike = {
+            "iam:AWSServiceName" = "elasticloadbalancing.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# EC2/VPC - for EC2 backend infrastructure
+resource "aws_iam_role_policy" "ec2" {
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs broad EC2/VPC permissions for infrastructure management
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for dynamic EC2/VPC resources
+  name = "ec2-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:DescribeAvailabilityZones",
+          "ec2:DescribeImages",
+          "ec2:DescribeInstances",
+          "ec2:DescribeInstanceTypes",
+          "ec2:DescribeKeyPairs",
+          "ec2:DescribeLaunchTemplates",
+          "ec2:DescribeLaunchTemplateVersions",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeSecurityGroupRules",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeVpcs",
+          "ec2:DescribeInternetGateways",
+          "ec2:DescribeRouteTables",
+          "ec2:DescribeNetworkAcls",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DescribeTags",
+          "ec2:DescribeAccountAttributes",
+          "ec2:DescribeAddresses",
+          "ec2:DescribeVpcAttribute"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateVpc",
+          "ec2:DeleteVpc",
+          "ec2:ModifyVpcAttribute",
+          "ec2:CreateSubnet",
+          "ec2:DeleteSubnet",
+          "ec2:ModifySubnetAttribute",
+          "ec2:CreateInternetGateway",
+          "ec2:DeleteInternetGateway",
+          "ec2:AttachInternetGateway",
+          "ec2:DetachInternetGateway",
+          "ec2:CreateRouteTable",
+          "ec2:DeleteRouteTable",
+          "ec2:AssociateRouteTable",
+          "ec2:DisassociateRouteTable",
+          "ec2:CreateRoute",
+          "ec2:DeleteRoute",
+          "ec2:CreateSecurityGroup",
+          "ec2:DeleteSecurityGroup",
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupEgress",
+          "ec2:ModifySecurityGroupRules",
+          "ec2:UpdateSecurityGroupRuleDescriptionsIngress",
+          "ec2:UpdateSecurityGroupRuleDescriptionsEgress",
+          "ec2:CreateLaunchTemplate",
+          "ec2:DeleteLaunchTemplate",
+          "ec2:CreateLaunchTemplateVersion",
+          "ec2:ModifyLaunchTemplate",
+          "ec2:RunInstances",
+          "ec2:TerminateInstances",
+          "ec2:CreateTags",
+          "ec2:DeleteTags"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "aws:RequestTag/Project" = "snakes-and-ladders"
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateVpc",
+          "ec2:DeleteVpc",
+          "ec2:ModifyVpcAttribute",
+          "ec2:CreateSubnet",
+          "ec2:DeleteSubnet",
+          "ec2:ModifySubnetAttribute",
+          "ec2:CreateInternetGateway",
+          "ec2:DeleteInternetGateway",
+          "ec2:AttachInternetGateway",
+          "ec2:DetachInternetGateway",
+          "ec2:CreateRouteTable",
+          "ec2:DeleteRouteTable",
+          "ec2:AssociateRouteTable",
+          "ec2:DisassociateRouteTable",
+          "ec2:CreateRoute",
+          "ec2:DeleteRoute",
+          "ec2:CreateSecurityGroup",
+          "ec2:DeleteSecurityGroup",
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupEgress",
+          "ec2:ModifySecurityGroupRules",
+          "ec2:UpdateSecurityGroupRuleDescriptionsIngress",
+          "ec2:UpdateSecurityGroupRuleDescriptionsEgress",
+          "ec2:CreateLaunchTemplate",
+          "ec2:DeleteLaunchTemplate",
+          "ec2:CreateLaunchTemplateVersion",
+          "ec2:ModifyLaunchTemplate",
+          "ec2:RunInstances",
+          "ec2:TerminateInstances",
+          "ec2:CreateTags",
+          "ec2:DeleteTags"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "aws:ResourceTag/Project" = "snakes-and-ladders"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# Elastic Load Balancing - for ALB
+resource "aws_iam_role_policy" "elb" {
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs broad ELB permissions for ALB management
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for dynamic ELB resources
+  name = "elb-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticloadbalancing:DescribeLoadBalancers",
+          "elasticloadbalancing:DescribeLoadBalancerAttributes",
+          "elasticloadbalancing:DescribeListeners",
+          "elasticloadbalancing:DescribeListenerCertificates",
+          "elasticloadbalancing:DescribeRules",
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:DescribeTargetGroupAttributes",
+          "elasticloadbalancing:DescribeTargetHealth",
+          "elasticloadbalancing:DescribeTags",
+          "elasticloadbalancing:DescribeSSLPolicies",
+          "elasticloadbalancing:DescribeAccountLimits"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticloadbalancing:CreateLoadBalancer",
+          "elasticloadbalancing:DeleteLoadBalancer",
+          "elasticloadbalancing:ModifyLoadBalancerAttributes",
+          "elasticloadbalancing:SetSecurityGroups",
+          "elasticloadbalancing:SetSubnets",
+          "elasticloadbalancing:CreateListener",
+          "elasticloadbalancing:DeleteListener",
+          "elasticloadbalancing:ModifyListener",
+          "elasticloadbalancing:AddListenerCertificates",
+          "elasticloadbalancing:RemoveListenerCertificates",
+          "elasticloadbalancing:CreateRule",
+          "elasticloadbalancing:DeleteRule",
+          "elasticloadbalancing:ModifyRule",
+          "elasticloadbalancing:CreateTargetGroup",
+          "elasticloadbalancing:DeleteTargetGroup",
+          "elasticloadbalancing:ModifyTargetGroup",
+          "elasticloadbalancing:ModifyTargetGroupAttributes",
+          "elasticloadbalancing:RegisterTargets",
+          "elasticloadbalancing:DeregisterTargets",
+          "elasticloadbalancing:AddTags",
+          "elasticloadbalancing:RemoveTags"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Auto Scaling - for ASG
+resource "aws_iam_role_policy" "autoscaling" {
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs broad Auto Scaling permissions for ASG management
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for dynamic ASG resources
+  name = "autoscaling-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "autoscaling:DescribeAutoScalingGroups",
+          "autoscaling:DescribeAutoScalingInstances",
+          "autoscaling:DescribeLaunchConfigurations",
+          "autoscaling:DescribeScalingActivities",
+          "autoscaling:DescribePolicies",
+          "autoscaling:DescribeTags",
+          "autoscaling:DescribeInstanceRefreshes",
+          "autoscaling:DescribeLoadBalancers",
+          "autoscaling:DescribeLoadBalancerTargetGroups",
+          "autoscaling:DescribeLifecycleHooks",
+          "autoscaling:DescribeWarmPool",
+          "autoscaling:DescribeScheduledActions"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "autoscaling:CreateAutoScalingGroup",
+          "autoscaling:DeleteAutoScalingGroup",
+          "autoscaling:UpdateAutoScalingGroup",
+          "autoscaling:SetDesiredCapacity",
+          "autoscaling:AttachLoadBalancers",
+          "autoscaling:DetachLoadBalancers",
+          "autoscaling:AttachLoadBalancerTargetGroups",
+          "autoscaling:DetachLoadBalancerTargetGroups",
+          "autoscaling:CreateOrUpdateTags",
+          "autoscaling:DeleteTags",
+          "autoscaling:PutScalingPolicy",
+          "autoscaling:DeletePolicy",
+          "autoscaling:StartInstanceRefresh",
+          "autoscaling:CancelInstanceRefresh",
+          "autoscaling:PutLifecycleHook",
+          "autoscaling:DeleteLifecycleHook",
+          "autoscaling:PutScheduledUpdateGroupAction",
+          "autoscaling:DeleteScheduledAction",
+          "autoscaling:EnableMetricsCollection",
+          "autoscaling:DisableMetricsCollection"
+        ]
+        Resource = "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/snakes-and-ladders-*"
       }
     ]
   })
