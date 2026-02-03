@@ -266,6 +266,7 @@ resource "aws_iam_role_policy" "logs" {
           "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/snakes-and-ladders-*",
           "arn:aws:logs:${var.aws_region}:*:log-group:/aws/apigateway/snakes-and-ladders-*",
           "arn:aws:logs:${var.aws_region}:*:log-group:/snakes-and-ladders/*",
+          "arn:aws:logs:${var.aws_region}:*:log-group:/ec2/snakes-and-ladders-*",
           "arn:aws:logs:us-east-1:*:log-group:aws-waf-logs-snakes-and-ladders-*"
         ]
       },
@@ -547,7 +548,8 @@ resource "aws_iam_role_policy" "elb" {
           "elasticloadbalancing:DescribeTargetHealth",
           "elasticloadbalancing:DescribeTags",
           "elasticloadbalancing:DescribeSSLPolicies",
-          "elasticloadbalancing:DescribeAccountLimits"
+          "elasticloadbalancing:DescribeAccountLimits",
+          "elasticloadbalancing:DescribeListenerAttributes"
         ]
         Resource = "*"
       },
@@ -635,6 +637,32 @@ resource "aws_iam_role_policy" "autoscaling" {
           "autoscaling:DisableMetricsCollection"
         ]
         Resource = "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/snakes-and-ladders-*"
+      }
+    ]
+  })
+}
+
+# CloudWatch Alarms - for ASG scaling
+resource "aws_iam_role_policy" "cloudwatch_alarms" {
+  #checkov:skip=CKV_AWS_290:CI/CD deploy role needs CloudWatch Alarms permissions for ASG
+  #checkov:skip=CKV_AWS_355:CI/CD deploy role needs wildcard for alarm resources
+  name = "cloudwatch-alarms-access"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:PutMetricAlarm",
+          "cloudwatch:DeleteAlarms",
+          "cloudwatch:ListTagsForResource",
+          "cloudwatch:TagResource",
+          "cloudwatch:UntagResource"
+        ]
+        Resource = "arn:aws:cloudwatch:*:*:alarm:snakes-and-ladders-*"
       }
     ]
   })
