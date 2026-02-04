@@ -246,10 +246,6 @@ export function render(state: RendererState): void {
       item.type === 'ladder' ? 8 : 6,
       itemColor
     );
-
-    // Draw markers at endpoints
-    drawCircle(positions, colors, startPos.x, startPos.y, 6, itemColor);
-    drawCircle(positions, colors, endPos.x, endPos.y, 6, itemColor);
   }
 
   // Draw players
@@ -272,9 +268,13 @@ export function render(state: RendererState): void {
         pos = getCellPosition(player.position);
       }
 
-      // Offset for multiple players on same cell
-      const offsetX = (index % 2) * 15 - 7;
-      const offsetY = Math.floor(index / 2) * 15 - 7;
+      // Only offset when multiple players share a cell
+      const playersOnSameCell = players.filter((p) => p.position === player.position).length;
+      const playerIndexOnCell = players.filter(
+        (p, i) => p.position === player.position && i < index
+      ).length;
+      const offsetX = playersOnSameCell > 1 ? (playerIndexOnCell % 2) * 15 - 7.5 : 0;
+      const offsetY = playersOnSameCell > 1 ? Math.floor(playerIndexOnCell / 2) * 15 - 7.5 : 0;
 
       // Player shadow
       drawCircle(positions, colors, pos.x + offsetX + 2, pos.y + offsetY + 2, 14, {

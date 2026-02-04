@@ -368,6 +368,18 @@ data "archive_file" "http_poll" {
   output_path = "${path.module}/lambda-zips/http-poll.zip"
 }
 
+data "archive_file" "http_admin_games" {
+  type        = "zip"
+  source_file = "${path.module}/../packages/backend/dist/http-admin-games.js"
+  output_path = "${path.module}/lambda-zips/http-admin-games.zip"
+}
+
+data "archive_file" "http_admin_game_detail" {
+  type        = "zip"
+  source_file = "${path.module}/../packages/backend/dist/http-admin-game-detail.js"
+  output_path = "${path.module}/lambda-zips/http-admin-game-detail.zip"
+}
+
 # =============================================================================
 # Lambda IAM Roles and Functions
 # =============================================================================
@@ -1257,6 +1269,255 @@ resource "aws_lambda_permission" "http_poll" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.http_poll.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}
+
+# =============================================================================
+# Admin API Lambda Functions
+# =============================================================================
+
+# --- http-admin-games Lambda ---
+resource "aws_iam_role" "http_admin_games" {
+  name = "${local.project}-${local.env}-http-admin-games-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "http_admin_games_basic" {
+  role       = aws_iam_role.http_admin_games.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "http_admin_games_xray" {
+  role       = aws_iam_role.http_admin_games.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
+resource "aws_iam_role_policy" "http_admin_games_dynamodb" {
+  name = "dynamodb-access"
+  role = aws_iam_role.http_admin_games.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = [
+          aws_dynamodb_table.main.arn,
+          "${aws_dynamodb_table.main.arn}/index/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [aws_kms_key.dynamodb.arn]
+      }
+    ]
+  })
+}
+
+resource "aws_lambda_function" "http_admin_games" {
+  #checkov:skip=CKV_AWS_117:Lambda does not need VPC access - only accesses DynamoDB via AWS APIs
+  #checkov:skip=CKV_AWS_116:Admin API - DLQ not needed for read-only operations
+  #checkov:skip=CKV_AWS_272:Code signing not required - code deployed via CI/CD with integrity checks
+  function_name                  = "${local.project}-${local.env}-http-admin-games"
+  role                           = aws_iam_role.http_admin_games.arn
+  handler                        = "http-admin-games.handler"
+  runtime                        = "nodejs20.x"
+  timeout                        = 30
+  memory_size                    = 256
+  reserved_concurrent_executions = 10
+  kms_key_arn                    = aws_kms_key.lambda_env.arn
+
+  filename         = data.archive_file.http_admin_games.output_path
+  source_code_hash = data.archive_file.http_admin_games.output_base64sha256
+
+  tracing_config {
+    mode = "Active"
+  }
+
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.main.name
+    }
+  }
+
+  tags = local.tags
+}
+
+resource "aws_cloudwatch_log_group" "http_admin_games" {
+  #checkov:skip=CKV_AWS_338:14-day retention is sufficient for admin logs - cost optimization
+  name              = "/aws/lambda/${local.project}-${local.env}-http-admin-games"
+  retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
+  tags              = local.tags
+}
+
+# --- http-admin-game-detail Lambda ---
+resource "aws_iam_role" "http_admin_game_detail" {
+  name = "${local.project}-${local.env}-http-admin-game-detail-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "http_admin_game_detail_basic" {
+  role       = aws_iam_role.http_admin_game_detail.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "http_admin_game_detail_xray" {
+  role       = aws_iam_role.http_admin_game_detail.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
+resource "aws_iam_role_policy" "http_admin_game_detail_dynamodb" {
+  name = "dynamodb-access"
+  role = aws_iam_role.http_admin_game_detail.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = [
+          aws_dynamodb_table.main.arn,
+          "${aws_dynamodb_table.main.arn}/index/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [aws_kms_key.dynamodb.arn]
+      }
+    ]
+  })
+}
+
+resource "aws_lambda_function" "http_admin_game_detail" {
+  #checkov:skip=CKV_AWS_117:Lambda does not need VPC access - only accesses DynamoDB via AWS APIs
+  #checkov:skip=CKV_AWS_116:Admin API - DLQ not needed for read-only operations
+  #checkov:skip=CKV_AWS_272:Code signing not required - code deployed via CI/CD with integrity checks
+  function_name                  = "${local.project}-${local.env}-http-admin-game-detail"
+  role                           = aws_iam_role.http_admin_game_detail.arn
+  handler                        = "http-admin-game-detail.handler"
+  runtime                        = "nodejs20.x"
+  timeout                        = 30
+  memory_size                    = 256
+  reserved_concurrent_executions = 10
+  kms_key_arn                    = aws_kms_key.lambda_env.arn
+
+  filename         = data.archive_file.http_admin_game_detail.output_path
+  source_code_hash = data.archive_file.http_admin_game_detail.output_base64sha256
+
+  tracing_config {
+    mode = "Active"
+  }
+
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.main.name
+    }
+  }
+
+  tags = local.tags
+}
+
+resource "aws_cloudwatch_log_group" "http_admin_game_detail" {
+  #checkov:skip=CKV_AWS_338:14-day retention is sufficient for admin logs - cost optimization
+  name              = "/aws/lambda/${local.project}-${local.env}-http-admin-game-detail"
+  retention_in_days = 14
+  kms_key_id        = aws_kms_key.cloudwatch.arn
+  tags              = local.tags
+}
+
+# Admin API Routes
+resource "aws_apigatewayv2_route" "admin_games" {
+  #checkov:skip=CKV_AWS_309:Admin API uses Basic Auth in Lambda - authorization handled at application level
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "GET /admin/games"
+  target    = "integrations/${aws_apigatewayv2_integration.http_admin_games.id}"
+}
+
+resource "aws_apigatewayv2_route" "admin_game_detail" {
+  #checkov:skip=CKV_AWS_309:Admin API uses Basic Auth in Lambda - authorization handled at application level
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "GET /admin/games/{code}"
+  target    = "integrations/${aws_apigatewayv2_integration.http_admin_game_detail.id}"
+}
+
+resource "aws_apigatewayv2_integration" "http_admin_games" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.http_admin_games.invoke_arn
+  integration_method     = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_integration" "http_admin_game_detail" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.http_admin_game_detail.invoke_arn
+  integration_method     = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_lambda_permission" "http_admin_games" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.http_admin_games.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "http_admin_game_detail" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.http_admin_game_detail.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }

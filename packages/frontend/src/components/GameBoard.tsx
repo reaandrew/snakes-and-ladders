@@ -145,16 +145,6 @@ export function GameBoard() {
             ctx.lineTo(rungX - perpX, rungY - perpY);
             ctx.stroke();
           }
-
-          // Draw end markers (circles)
-          const markerSize = Math.max(4, 6 * lineScale);
-          ctx.fillStyle = 'rgba(34, 197, 94, 0.9)';
-          ctx.beginPath();
-          ctx.arc(startCoords.x, startCoords.y, markerSize, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(endCoords.x, endCoords.y, markerSize, 0, Math.PI * 2);
-          ctx.fill();
         } else {
           // Draw snake as a curved wavy line
           ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // Red
@@ -227,7 +217,7 @@ export function GameBoard() {
         const col = row % 2 === 0 ? (pos - 1) % boardSize : boardSize - 1 - ((pos - 1) % boardSize);
 
         const x = col * cellSize + cellSize / 2;
-        const y = (boardSize - 1 - row) * cellSize + cellSize / 2 + cellSize * 0.2;
+        const y = (boardSize - 1 - row) * cellSize + cellSize / 2;
 
         // Offset multiple players on same cell
         const offsetX = (index % 2) * playerOffset - playerOffset / 2;
