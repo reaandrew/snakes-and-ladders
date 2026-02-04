@@ -1,3 +1,9 @@
+## [2.1.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.0.0...v2.1.0) (2026-02-04)
+
+### Features
+
+* **go-backend:** add admin API endpoints ([c409edf](https://github.com/reaandrew/snakes-and-ladders/commit/c409edfd983371ae57b526b09b589dc33a6c43b7))
+
 ## [2.0.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.6.0...v2.0.0) (2026-02-04)
 
 ### ⚠ BREAKING CHANGES
