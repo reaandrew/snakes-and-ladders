@@ -6,3 +6,7 @@ pnpm-lock.yaml
 *.md
 .terraform
 *.tfstate*
+test-results
+playwright-report
+**/test-results
+e2e/test-report.html

@@ -47,9 +47,9 @@ export default {
       },
     ],
     [
-      '@semantic-release/npm',
+      '@semantic-release/exec',
       {
-        npmPublish: false,
+        prepareCmd: 'npm pkg set version=${nextRelease.version}',
       },
     ],
     [
