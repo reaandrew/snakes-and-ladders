@@ -58,16 +58,8 @@ export interface Move {
   timestamp: string;
 }
 
-export const PLAYER_COLORS = [
-  '#EF4444', // red
-  '#3B82F6', // blue
-  '#22C55E', // green
-  '#EAB308', // yellow
-  '#A855F7', // purple
-  '#F97316', // orange
-  '#06B6D4', // cyan
-  '#EC4899', // pink
-] as const;
+// Re-export from the color utility for backward compatibility
+export { PLAYER_COLORS, MAX_PLAYERS } from '../utils/player-colors.js';
 
 export const DEFAULT_BOARD_CONFIG: BoardConfig = {
   size: 100,

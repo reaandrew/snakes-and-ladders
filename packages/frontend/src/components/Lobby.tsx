@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useGame } from '../contexts/GameContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 
-import { PlayerList } from './PlayerList';
+import { PlayerGrid } from './PlayerGrid';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Logo } from './ui/Logo';
@@ -191,13 +191,13 @@ export function Lobby() {
   if (view === 'waiting' && game) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-2xl bg-slate-800/50 p-8 backdrop-blur">
+        <div className="w-full max-w-xl rounded-2xl bg-slate-800/50 p-8 backdrop-blur">
           <h1 className="mb-2 text-center text-3xl font-bold text-white">Waiting Room</h1>
           <p className="mb-6 text-center text-slate-400">
             Game Code: <span className="font-mono text-2xl text-game-primary">{game.code}</span>
           </p>
 
-          <PlayerList players={players} currentPlayerId={currentPlayerId} />
+          <PlayerGrid players={players} currentPlayerId={currentPlayerId} />
 
           {error && (
             <div className="mt-4 rounded-lg bg-red-500/20 p-3 text-center text-red-400">

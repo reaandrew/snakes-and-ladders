@@ -11,7 +11,10 @@ export type {
   GetGameResponse,
 } from './types/game.types.js';
 
-export { PLAYER_COLORS, DEFAULT_BOARD_CONFIG } from './types/game.types.js';
+export { PLAYER_COLORS, DEFAULT_BOARD_CONFIG, MAX_PLAYERS } from './types/game.types.js';
+
+// Player color utilities
+export { generatePlayerColor, getPlayerColor } from './utils/player-colors.js';
 
 // Message types
 export type {

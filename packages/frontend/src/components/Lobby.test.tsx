@@ -446,7 +446,8 @@ describe('Lobby', () => {
       render(<Lobby />);
 
       expect(screen.getByText('Players (1)')).toBeInTheDocument();
-      expect(screen.getByText('Test Player')).toBeInTheDocument();
+      // In the new PlayerGrid, player names appear in the title attribute
+      expect(screen.getByTitle('Test Player (you)')).toBeInTheDocument();
     });
 
     it('shows waiting message for non-creators', () => {

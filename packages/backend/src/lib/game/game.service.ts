@@ -8,7 +8,7 @@ import type {
   DEFAULT_BOARD_CONFIG,
   ErrorCode,
 } from '@snakes-and-ladders/shared';
-import { ErrorCodes } from '@snakes-and-ladders/shared';
+import { ErrorCodes, MAX_PLAYERS } from '@snakes-and-ladders/shared';
 import { nanoid } from 'nanoid';
 
 import { processMove, rollDice } from '../board/board.service.js';
@@ -138,7 +138,7 @@ export class GameService {
       };
     }
 
-    if (existingPlayers.length >= this.playerColors.length) {
+    if (existingPlayers.length >= MAX_PLAYERS) {
       return {
         success: false,
         error: { code: ErrorCodes.GAME_FULL, message: 'Game is full' },
