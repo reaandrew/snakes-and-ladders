@@ -27,58 +27,51 @@ export function PlayerRaceChart({ players, boardSize }: PlayerRaceChartProps) {
       </div>
 
       {/* Race chart container */}
-      <div className="relative">
-        {/* Leader line - vertical indicator */}
-        <div
-          className="absolute top-0 z-10 h-full w-0.5 bg-red-500"
-          style={{ left: `${leaderPercent}%` }}
-        >
-          <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-red-500 px-2 py-0.5 text-xs font-medium text-white">
-            {leader.position}
-          </div>
-        </div>
+      <div className="space-y-3">
+        {players.map((player, index) => {
+          const positionPercent = (player.position / boardSize) * 100;
+          const isLeader = index === 0;
 
-        {/* Player bars */}
-        <div className="space-y-3">
-          {players.map((player) => {
-            const positionPercent = (player.position / boardSize) * 100;
+          return (
+            <div key={player.id} className="flex items-center gap-3">
+              {/* Rank */}
+              <span className="w-6 text-right text-sm font-bold text-slate-400">{player.rank}</span>
 
-            return (
-              <div key={player.id} className="flex items-center gap-3">
-                {/* Rank */}
-                <span className="w-6 text-right text-sm font-bold text-slate-400">
-                  {player.rank}
-                </span>
+              {/* Name */}
+              <span className="w-24 truncate text-sm font-medium text-white">{player.name}</span>
 
-                {/* Name */}
-                <span className="w-24 truncate text-sm font-medium text-white">{player.name}</span>
+              {/* Progress bar container */}
+              <div className="relative h-6 flex-1 overflow-hidden rounded bg-slate-700">
+                {/* Progress bar fill */}
+                <div
+                  className="absolute inset-y-0 left-0 transition-all duration-500"
+                  style={{
+                    width: `${positionPercent}%`,
+                    backgroundColor: player.color,
+                  }}
+                />
 
-                {/* Progress bar container */}
-                <div className="relative h-6 flex-1 overflow-hidden rounded bg-slate-700">
-                  {/* Progress bar fill */}
+                {/* Leader line - only on first row, extends through all bars */}
+                {isLeader && (
                   <div
-                    className="absolute inset-y-0 left-0 transition-all duration-500"
+                    className="pointer-events-none absolute top-0 z-20 w-0.5 bg-red-500 transition-all duration-500"
                     style={{
-                      width: `${positionPercent}%`,
-                      backgroundColor: player.color,
+                      left: `${leaderPercent}%`,
+                      height: `${players.length * 36}px`, // 24px bar + 12px gap per row
                     }}
-                  />
-
-                  {/* Remaining distance (unfilled) */}
-                  <div
-                    className="absolute inset-y-0 right-0 bg-slate-600/50"
-                    style={{ width: `${100 - positionPercent}%` }}
-                  />
-                </div>
-
-                {/* Position number */}
-                <span className="w-8 text-right text-sm font-bold text-white">
-                  {player.position}
-                </span>
+                  >
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-red-500 px-2 py-0.5 text-xs font-medium text-white">
+                      {leader.position}
+                    </div>
+                  </div>
+                )}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Position number */}
+              <span className="w-8 text-right text-sm font-bold text-white">{player.position}</span>
+            </div>
+          );
+        })}
       </div>
 
       {/* Legend */}
