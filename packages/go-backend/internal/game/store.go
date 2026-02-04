@@ -50,6 +50,18 @@ func (s *Store) Count() int {
 	return len(s.games)
 }
 
+// GetAll returns all games in the store.
+func (s *Store) GetAll() []*Game {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	games := make([]*Game, 0, len(s.games))
+	for _, g := range s.games {
+		games = append(games, g)
+	}
+	return games
+}
+
 // CleanupOldGames removes games older than the specified duration.
 func (s *Store) CleanupOldGames(maxAge time.Duration) int {
 	s.mu.Lock()

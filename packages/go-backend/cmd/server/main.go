@@ -30,6 +30,7 @@ func main() {
 	// Create handlers
 	healthHandler := handler.NewHealthHandler(store)
 	httpHandler := handler.NewHTTPHandler(store)
+	adminHandler := handler.NewAdminHandler(store)
 	wsHandler := handler.NewWebSocketHandler(store, h, cfg)
 
 	// Setup routes
@@ -53,6 +54,28 @@ func main() {
 		switch r.Method {
 		case http.MethodGet:
 			httpHandler.HandleGetGame(w, r)
+		case http.MethodOptions:
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	// Admin API
+	mux.HandleFunc("/admin/games", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			adminHandler.HandleListGames(w, r)
+		case http.MethodOptions:
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	mux.HandleFunc("/admin/games/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			adminHandler.HandleGetGameDetail(w, r)
 		case http.MethodOptions:
 			w.WriteHeader(http.StatusOK)
 		default:
