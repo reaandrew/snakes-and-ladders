@@ -1,3 +1,30 @@
+## [2.0.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.6.0...v2.0.0) (2026-02-04)
+
+### ⚠ BREAKING CHANGES
+
+* **backend:** Game is now a race where all players can roll
+simultaneously, not a turn-based game where players wait their turn.
+
+Changes:
+- Remove turn-based logic from game.go (no more ErrNotYourTurn)
+- Remove NextPlayerID from PlayerMovedMessage
+- Update tests to verify race mechanics
+- Add comprehensive E2E tests with Playwright
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+
+### Features
+
+* **backend:** add admin API Lambda handlers for production ([d80378b](https://github.com/reaandrew/snakes-and-ladders/commit/d80378b3f84f5de299231feedd7a4d02d7f38250))
+
+### Bug Fixes
+
+* **backend:** convert from turn-based to RACE game mechanics ([ca37fb4](https://github.com/reaandrew/snakes-and-ladders/commit/ca37fb4cc9203901b1d5bc3f228ade4480f1e23e))
+* **ci:** add dependency-audit to build job dependencies for faster failure ([b816d6b](https://github.com/reaandrew/snakes-and-ladders/commit/b816d6b2afcaa8c311d2ac67f82cf37f19cbf00f))
+* **ci:** fix lint, format, and audit failures ([04ead26](https://github.com/reaandrew/snakes-and-ladders/commit/04ead2618a191a7f11f5302a0fbb34d9a665bca3))
+* **ci:** upgrade to Node.js 22 for semantic-release 25.x ([cbb1364](https://github.com/reaandrew/snakes-and-ladders/commit/cbb136424d6a987327c42687bfed7a9271fcb405))
+* **ci:** use SonarCloud action instead of SonarQube action ([51ed0a2](https://github.com/reaandrew/snakes-and-ladders/commit/51ed0a2e8fac1dcc72bd5b389bb903d90da880f0))
+
 ## [1.6.0](https://github.com/reaandrew/snakes-and-ladders/compare/v1.5.3...v1.6.0) (2026-02-03)
 
 ### Features
