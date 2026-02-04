@@ -1,3 +1,9 @@
+## [2.2.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.1.1...v2.2.0) (2026-02-04)
+
+### Features
+
+* support 200 players with scalable waiting room UI ([d623320](https://github.com/reaandrew/snakes-and-ladders/commit/d62332069790bf9943cf74e6a92e71e02f9f068b))
+
 ## [2.1.1](https://github.com/reaandrew/snakes-and-ladders/compare/v2.1.0...v2.1.1) (2026-02-04)
 
 ### Bug Fixes
