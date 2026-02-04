@@ -1,3 +1,9 @@
+## [2.1.1](https://github.com/reaandrew/snakes-and-ladders/compare/v2.1.0...v2.1.1) (2026-02-04)
+
+### Bug Fixes
+
+* **frontend:** align leader line with progress bars in admin race view ([d896153](https://github.com/reaandrew/snakes-and-ladders/commit/d896153fd149feb95f18ee39c50ae13d66f56415))
+
 ## [2.1.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.0.0...v2.1.0) (2026-02-04)
 
 ### Features
