@@ -324,19 +324,19 @@ jobs:
           fetch-depth: 0
 
       - name: Download Frontend Coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend-coverage
           path: packages/frontend/coverage/
 
       - name: Download Backend Coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: backend-coverage
           path: packages/backend/coverage/
 
       - name: Download Shared Coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: shared-coverage
           path: packages/shared/coverage/
@@ -472,13 +472,13 @@ jobs:
           terraform_wrapper: false
 
       - name: Download Backend Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: backend-dist
           path: packages/backend/dist/
 
       - name: Download Go Backend Binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: go-backend-binary
           path: packages/go-backend/
@@ -565,25 +565,25 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download Frontend Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend-dist
           path: artifacts/frontend-dist/
 
       - name: Download Backend Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: backend-dist
           path: artifacts/backend-dist/
 
       - name: Download Go Backend Binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: go-backend-binary
           path: artifacts/go-backend/
 
       - name: Download SBOM
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: sbom
           path: artifacts/sbom/
