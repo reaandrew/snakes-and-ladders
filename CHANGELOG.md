@@ -1,3 +1,9 @@
+## [2.3.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.2.0...v2.3.0) (2026-02-05)
+
+### Features
+
+* add SLSA provenance attestations to CI/CD pipeline ([07f0626](https://github.com/reaandrew/snakes-and-ladders/commit/07f062690babf6fa8d09e46c1fd75e507a54878e))
+
 ## [2.2.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.1.1...v2.2.0) (2026-02-04)
 
 ### Features
