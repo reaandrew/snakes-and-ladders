@@ -12,6 +12,7 @@ permissions:
   pull-requests: write
   issues: write
   security-events: write
+  attestations: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -554,3 +555,62 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npx semantic-release
+
+  attestations:
+    name: SLSA Provenance Attestations
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: artifacts/frontend-dist/
+
+      - name: Download Backend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-dist
+          path: artifacts/backend-dist/
+
+      - name: Download Go Backend Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: go-backend-binary
+          path: artifacts/go-backend/
+
+      - name: Download SBOM
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: artifacts/sbom/
+
+      - name: Create artifact archives
+        run: |
+          cd artifacts
+          tar -czf frontend-dist.tar.gz -C frontend-dist .
+          tar -czf backend-dist.tar.gz -C backend-dist .
+          tar -czf go-backend.tar.gz -C go-backend .
+
+      - name: Attest Frontend Build
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: artifacts/frontend-dist.tar.gz
+
+      - name: Attest Backend Build
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: artifacts/backend-dist.tar.gz
+
+      - name: Attest Go Backend Binary
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: artifacts/go-backend.tar.gz
+
+      - name: Attest SBOM
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: artifacts/sbom/sbom.spdx.json
