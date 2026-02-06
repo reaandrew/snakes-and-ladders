@@ -119,7 +119,7 @@ func (h *HTTPHandler) writeError(w http.ResponseWriter, status int, code, msg st
 // Helper functions to convert game types to message types
 
 func gameToInfo(g *game.Game) message.GameInfo {
-	code, status, creatorID, board, createdAt, updatedAt := g.GetInfo()
+	code, status, creatorID, winnerID, board, createdAt, updatedAt := g.GetInfo()
 
 	snakesAndLadders := make([]message.SnakeLadderInfo, len(board.SnakesAndLadders))
 	for i, sl := range board.SnakesAndLadders {
@@ -134,6 +134,7 @@ func gameToInfo(g *game.Game) message.GameInfo {
 		Code:      code,
 		Status:    status,
 		CreatorID: creatorID,
+		WinnerID:  winnerID,
 		Board: message.BoardInfo{
 			Size:             board.Size,
 			SnakesAndLadders: snakesAndLadders,

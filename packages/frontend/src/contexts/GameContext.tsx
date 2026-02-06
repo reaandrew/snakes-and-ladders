@@ -8,6 +8,8 @@ import React, {
   useRef,
 } from 'react';
 
+import { clearSession } from '../lib/session';
+
 import { useWebSocket } from './WebSocketContext';
 
 interface Move {
@@ -160,7 +162,7 @@ interface GameProviderProps {
 
 export function GameProvider({ children }: GameProviderProps) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
-  const { sendMessage, lastMessage, isConnected } = useWebSocket();
+  const { sendMessage, messageVersion, consumeMessages, isConnected } = useWebSocket();
   const needsRejoinRef = useRef(false);
   const wasConnectedRef = useRef(false);
 
@@ -222,71 +224,83 @@ export function GameProvider({ children }: GameProviderProps) {
     wasConnectedRef.current = isConnected;
   }, [isConnected, state.game, state.currentPlayerId, sendMessage]);
 
-  // Handle incoming WebSocket messages
+  // Handle incoming WebSocket messages — drain entire queue each render cycle
   useEffect(() => {
-    if (!lastMessage) return;
+    if (messageVersion === 0) return;
 
-    const message = lastMessage;
+    const messages = consumeMessages();
+    for (const message of messages) {
+      switch (message.type) {
+        case 'joinedGame':
+          // Reject finished games on rejoin
+          if (message.game.status === 'finished') {
+            clearSession();
+            dispatch({ type: 'SET_ERROR', payload: 'That game has already ended.' });
+            break;
+          }
+          dispatch({
+            type: 'SET_GAME',
+            payload: {
+              game: message.game,
+              players: message.players,
+              playerId: message.playerId,
+            },
+          });
+          break;
 
-    switch (message.type) {
-      case 'joinedGame':
-        dispatch({
-          type: 'SET_GAME',
-          payload: {
-            game: message.game,
-            players: message.players,
-            playerId: message.playerId,
-          },
-        });
-        break;
+        case 'gameState':
+          // gameState is sent in response to rejoinGame - update game state
+          if (message.game.status === 'finished') {
+            clearSession();
+            dispatch({ type: 'SET_ERROR', payload: 'That game has already ended.' });
+            break;
+          }
+          // The playerId is already known from the rejoin request
+          dispatch({
+            type: 'SET_GAME',
+            payload: {
+              game: message.game,
+              players: message.players,
+              playerId: state.currentPlayerId || message.players?.[0]?.id,
+            },
+          });
+          break;
 
-      case 'gameState':
-        // gameState is sent in response to rejoinGame - update game state
-        // The playerId is already known from the rejoin request
-        dispatch({
-          type: 'SET_GAME',
-          payload: {
-            game: message.game,
-            players: message.players,
-            playerId: state.currentPlayerId || message.players?.[0]?.id,
-          },
-        });
-        break;
+        case 'playerJoined':
+          dispatch({ type: 'PLAYER_JOINED', payload: message.player });
+          break;
 
-      case 'playerJoined':
-        dispatch({ type: 'PLAYER_JOINED', payload: message.player });
-        break;
+        case 'playerLeft':
+          dispatch({ type: 'PLAYER_LEFT', payload: message.playerId });
+          break;
 
-      case 'playerLeft':
-        dispatch({ type: 'PLAYER_LEFT', payload: message.playerId });
-        break;
+        case 'playerMoved':
+          dispatch({
+            type: 'PLAYER_MOVED',
+            payload: {
+              playerId: message.playerId,
+              diceRoll: message.diceRoll,
+              previousPosition: message.previousPosition,
+              newPosition: message.newPosition,
+              effect: message.effect,
+            },
+          });
+          break;
 
-      case 'playerMoved':
-        dispatch({
-          type: 'PLAYER_MOVED',
-          payload: {
-            playerId: message.playerId,
-            diceRoll: message.diceRoll,
-            previousPosition: message.previousPosition,
-            newPosition: message.newPosition,
-            effect: message.effect,
-          },
-        });
-        break;
+        case 'gameStarted':
+          dispatch({ type: 'GAME_STARTED', payload: message.game });
+          break;
 
-      case 'gameStarted':
-        dispatch({ type: 'GAME_STARTED', payload: message.game });
-        break;
+        case 'gameEnded':
+          dispatch({ type: 'GAME_ENDED', payload: { winnerId: message.winnerId } });
+          break;
 
-      case 'gameEnded':
-        dispatch({ type: 'GAME_ENDED', payload: { winnerId: message.winnerId } });
-        break;
-
-      case 'error':
-        dispatch({ type: 'SET_ERROR', payload: message.message });
-        break;
+        case 'error':
+          dispatch({ type: 'SET_ERROR', payload: message.message });
+          break;
+      }
     }
-  }, [lastMessage]);
+  }, [messageVersion, consumeMessages]);
 
   const joinGame = useCallback(
     (gameCode: string, playerName: string) => {
@@ -331,6 +345,7 @@ export function GameProvider({ children }: GameProviderProps) {
   }, [state.game, state.currentPlayerId, sendMessage]);
 
   const resetGame = useCallback(() => {
+    clearSession();
     dispatch({ type: 'RESET' });
   }, []);
 

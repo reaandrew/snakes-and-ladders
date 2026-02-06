@@ -107,6 +107,7 @@ type GameInfo struct {
 	Code      string    `json:"code"`
 	Status    string    `json:"status"`
 	CreatorID string    `json:"creatorId"`
+	WinnerID  string    `json:"winnerId,omitempty"`
 	Board     BoardInfo `json:"board"`
 	CreatedAt string    `json:"createdAt"`
 	UpdatedAt string    `json:"updatedAt"`

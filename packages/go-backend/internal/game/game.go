@@ -137,6 +137,9 @@ func (g *Game) Start(playerID string) error {
 
 	g.Status = StatusPlaying
 	g.CurrentTurnIdx = 0
+	for _, p := range g.Players {
+		p.Position = 1
+	}
 	g.UpdatedAt = time.Now()
 	return nil
 }
@@ -227,10 +230,10 @@ func (g *Game) GetCreatedAt() time.Time {
 }
 
 // GetInfo returns a snapshot of the game state for serialization.
-func (g *Game) GetInfo() (code, status, creatorID string, board *Board, createdAt, updatedAt time.Time) {
+func (g *Game) GetInfo() (code, status, creatorID, winnerID string, board *Board, createdAt, updatedAt time.Time) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	return g.Code, g.Status, g.CreatorID, g.Board, g.CreatedAt, g.UpdatedAt
+	return g.Code, g.Status, g.CreatorID, g.WinnerID, g.Board, g.CreatedAt, g.UpdatedAt
 }
 
 // generateGameCode creates a 6-character alphanumeric code.

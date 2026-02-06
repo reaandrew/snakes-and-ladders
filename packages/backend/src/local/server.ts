@@ -302,6 +302,10 @@ function handleMessage(ws: WebSocket, message: ClientMessage) {
       handleStartGame(ws, message.gameCode, message.playerId);
       break;
 
+    case 'rejoinGame':
+      handleRejoinGame(ws, message.gameCode, message.playerId);
+      break;
+
     case 'rollDice':
       handleRollDice(ws, message.gameCode, message.playerId);
       break;
@@ -374,6 +378,39 @@ function handleJoinGame(ws: WebSocket, gameCode: string, playerName: string) {
   if (isNewPlayer) {
     broadcast(gameCode, { type: 'playerJoined', player }, ws);
   }
+}
+
+function handleRejoinGame(ws: WebSocket, gameCode: string, playerId: string) {
+  const game = games.get(gameCode);
+  if (!game) {
+    sendTo(ws, { type: 'error', code: 'GAME_NOT_FOUND', message: 'Game not found' });
+    return;
+  }
+
+  const gamePlayers = players.get(gameCode) || [];
+  const player = gamePlayers.find((p) => p.id === playerId);
+
+  if (!player) {
+    sendTo(ws, { type: 'error', code: 'PLAYER_NOT_FOUND', message: 'Player not found in game' });
+    return;
+  }
+
+  // Mark player as connected
+  player.isConnected = true;
+
+  // Link connection to game
+  connections.set(ws, { gameCode, playerId: player.id });
+  gameConnections.get(gameCode)?.add(ws);
+
+  console.log(`[WS] Player rejoined: ${player.name} -> ${gameCode}`);
+
+  // Send joinedGame with current state
+  sendTo(ws, {
+    type: 'joinedGame',
+    playerId: player.id,
+    game,
+    players: gamePlayers,
+  });
 }
 
 function handleStartGame(ws: WebSocket, gameCode: string, playerId: string) {

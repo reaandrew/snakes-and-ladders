@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 import { useGame } from '../contexts/GameContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import { saveSession, loadSession, clearSession } from '../lib/session';
 
 import { PlayerGrid } from './PlayerGrid';
 import { Button } from './ui/Button';
@@ -10,34 +11,6 @@ import { Logo } from './ui/Logo';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
-const SESSION_KEY = 'snakes-and-ladders-session';
-
-interface GameSession {
-  gameCode: string;
-  playerId: string;
-  isCreator: boolean;
-  playerName: string;
-}
-
-function saveSession(session: GameSession) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-}
-
-function loadSession(): GameSession | null {
-  try {
-    const data = localStorage.getItem(SESSION_KEY);
-    if (data) {
-      return JSON.parse(data) as GameSession;
-    }
-  } catch {
-    // Invalid session data
-  }
-  return null;
-}
-
-function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-}
 
 export function Lobby() {
   const [view, setView] = useState<'home' | 'create' | 'join' | 'waiting'>('home');

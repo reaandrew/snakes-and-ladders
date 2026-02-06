@@ -10,6 +10,8 @@ interface WebSocketContextType {
   transportType: 'websocket' | 'long-polling' | null;
   sendMessage: (message: ClientMessage) => void;
   lastMessage: ServerMessage | null;
+  messageVersion: number;
+  consumeMessages: () => ServerMessage[];
   connect: (url: string) => void;
   disconnect: () => void;
 }
@@ -25,7 +27,8 @@ const FALLBACK_THRESHOLD = 3; // Switch to long-polling after 3 consecutive WebS
 export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const [transportState, setTransportState] = useState<TransportState>('disconnected');
   const [transportType, setTransportType] = useState<'websocket' | 'long-polling' | null>(null);
-  const [lastMessage, setLastMessage] = useState<ServerMessage | null>(null);
+  const [messageVersion, setMessageVersion] = useState(0);
+  const messageQueueRef = useRef<ServerMessage[]>([]);
   const transportRef = useRef<Transport | null>(null);
   const urlRef = useRef<string>('');
   const wsFailureCountRef = useRef<number>(0);
@@ -34,7 +37,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const config = {
       events: {
         onMessage: (message: ServerMessage) => {
-          setLastMessage(message);
+          messageQueueRef.current.push(message);
+          setMessageVersion((v) => v + 1);
         },
         onStateChange: (state: TransportState) => {
           setTransportState(state);
@@ -106,6 +110,12 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     }
   }, []);
 
+  const consumeMessages = useCallback((): ServerMessage[] => {
+    const messages = messageQueueRef.current;
+    messageQueueRef.current = [];
+    return messages;
+  }, []);
+
   useEffect(() => {
     return () => {
       disconnect();
@@ -113,6 +123,12 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   }, [disconnect]);
 
   const isConnected = transportState === 'connected';
+
+  // Derive lastMessage for backward compat — last item in queue, or null
+  const lastMessage =
+    messageQueueRef.current.length > 0
+      ? messageQueueRef.current[messageQueueRef.current.length - 1]
+      : null;
 
   return (
     <WebSocketContext.Provider
@@ -122,6 +138,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
         transportType,
         sendMessage,
         lastMessage,
+        messageVersion,
+        consumeMessages,
         connect,
         disconnect,
       }}

@@ -85,7 +85,7 @@ func (h *AdminHandler) HandleListGames(w http.ResponseWriter, r *http.Request) {
 	summaries := make([]AdminGameSummary, 0, len(games))
 
 	for _, g := range games {
-		code, status, _, board, createdAt, _ := g.GetInfo()
+		code, status, _, _, board, createdAt, _ := g.GetInfo()
 		players := g.GetPlayers()
 
 		// Find leader (player with highest position)
@@ -150,7 +150,7 @@ func (h *AdminHandler) HandleGetGameDetail(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	gameCode, status, creatorID, board, createdAt, updatedAt := g.GetInfo()
+	gameCode, status, creatorID, winnerID, board, createdAt, updatedAt := g.GetInfo()
 	players := g.GetPlayers()
 
 	// Sort players by position descending
@@ -190,6 +190,7 @@ func (h *AdminHandler) HandleGetGameDetail(w http.ResponseWriter, r *http.Reques
 			Code:      gameCode,
 			Status:    status,
 			CreatorID: creatorID,
+			WinnerID:  winnerID,
 			Board: message.BoardInfo{
 				Size:             board.Size,
 				SnakesAndLadders: snakesAndLadders,
