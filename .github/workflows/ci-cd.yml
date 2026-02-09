@@ -568,7 +568,7 @@ jobs:
         run: |
           npm install
           API_URL=$(cd ../infrastructure && terraform output -raw api_endpoint)
-          node load-test.js --api="$API_URL" --players=10 --play --timeout=60
+          node load-test.js --api="$API_URL" --players=100 --play --timeout=120
 
   release:
     name: Semantic Release
