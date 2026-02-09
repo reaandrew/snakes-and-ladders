@@ -35,6 +35,7 @@ const args = process.argv.slice(2).reduce((acc, arg) => {
 const NUM_PLAYERS = parseInt(args.players) || 100;
 const API_URL = args.api || 'https://api.snakes.demos.apps.equal.expert';
 const WS_URL = API_URL.replace('https://', 'wss://').replace('http://', 'ws://') + '/ws';
+const FRONTEND_ORIGIN = API_URL.replace('://api.', '://');
 const JOIN_DELAY = parseInt(args.delay) || 100;
 const SIMULATE_PLAY = args.play || false;
 const TIMEOUT_SEC = args.timeout ? parseInt(args.timeout) : null;
@@ -145,7 +146,7 @@ async function createGame() {
 function createPlayer(index, gameCode) {
   return new Promise((resolve, reject) => {
     const name = generateName(index);
-    const ws = new WebSocket(WS_URL);
+    const ws = new WebSocket(WS_URL, { headers: { Origin: FRONTEND_ORIGIN } });
     let timeoutId = null;
     let resolved = false;
 

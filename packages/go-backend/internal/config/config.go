@@ -21,7 +21,7 @@ func Load() *Config {
 		}
 	}
 
-	allowedOrigins := []string{"https://snakes.techar.ch"}
+	allowedOrigins := []string{"https://snakes.demos.apps.equal.expert"}
 	if origins := os.Getenv("ALLOWED_ORIGINS"); origins != "" {
 		allowedOrigins = strings.Split(origins, ",")
 		for i, o := range allowedOrigins {
