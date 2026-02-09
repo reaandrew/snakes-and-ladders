@@ -7,11 +7,11 @@ variable "aws_region" {
 variable "domain_name" {
   description = "Custom domain name for the frontend"
   type        = string
-  default     = "snakes.techar.ch"
+  default     = "snakes.demos.apps.equal.expert"
 }
 
 variable "route53_zone_name" {
   description = "Route53 hosted zone name"
   type        = string
-  default     = "techar.ch"
+  default     = "demos.apps.equal.expert"
 }

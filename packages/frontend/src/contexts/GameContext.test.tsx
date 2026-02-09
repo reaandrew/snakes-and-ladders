@@ -7,14 +7,22 @@ import { GameProvider, useGame } from './GameContext';
 
 // Mock the useWebSocket hook
 const mockSendMessage = vi.fn();
-let mockLastMessage: ServerMessage | null = null;
 let mockIsConnected = true;
+let mockMessageVersion = 0;
+const mockMessageQueue: ServerMessage[] = [];
+
+const mockConsumeMessages = vi.fn(() => {
+  const messages = [...mockMessageQueue];
+  mockMessageQueue.length = 0;
+  return messages;
+});
 
 vi.mock('./WebSocketContext', () => ({
   useWebSocket: () => ({
     sendMessage: mockSendMessage,
-    lastMessage: mockLastMessage,
     isConnected: mockIsConnected,
+    messageVersion: mockMessageVersion,
+    consumeMessages: mockConsumeMessages,
   }),
 }));
 
@@ -48,8 +56,9 @@ const createMockPlayer = (overrides: Partial<Player> = {}): Player => ({
 });
 
 // Helper to trigger message handling via useEffect
-const triggerMessage = (rerender: () => void, message: ServerMessage | null) => {
-  mockLastMessage = message;
+const enqueueMessage = (rerender: () => void, message: ServerMessage) => {
+  mockMessageQueue.push(message);
+  mockMessageVersion++;
   act(() => {
     rerender();
   });
@@ -63,8 +72,10 @@ describe('GameContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSendMessage.mockClear();
-    mockLastMessage = null;
+    mockConsumeMessages.mockClear();
     mockIsConnected = true;
+    mockMessageVersion = 0;
+    mockMessageQueue.length = 0;
   });
 
   describe('useGame hook', () => {
@@ -133,12 +144,13 @@ describe('GameContext', () => {
 
     describe('startGame', () => {
       it('sends start game message when game exists', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame(),
           players: [createMockPlayer()],
-        };
+        });
+        mockMessageVersion = 1;
         const { result } = renderHook(() => useGame(), { wrapper });
 
         // Initial render should process the message
@@ -168,12 +180,13 @@ describe('GameContext', () => {
 
     describe('rollDice', () => {
       it('sends roll dice message when game is active', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame({ status: 'playing' }),
           players: [createMockPlayer()],
-        };
+        });
+        mockMessageVersion = 1;
         const { result } = renderHook(() => useGame(), { wrapper });
 
         expect(result.current.game).not.toBeNull();
@@ -202,12 +215,13 @@ describe('GameContext', () => {
 
     describe('resetGame', () => {
       it('resets state to initial values', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame(),
           players: [createMockPlayer()],
-        };
+        });
+        mockMessageVersion = 1;
         const { result } = renderHook(() => useGame(), { wrapper });
 
         expect(result.current.game).not.toBeNull();
@@ -230,12 +244,13 @@ describe('GameContext', () => {
           createMockPlayer({ id: 'player-2', name: 'Player 2' }),
         ];
 
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game,
           players,
-        };
+        });
+        mockMessageVersion = 1;
         const { result } = renderHook(() => useGame(), { wrapper });
 
         expect(result.current.game?.code).toBe('ABC123');
@@ -246,18 +261,19 @@ describe('GameContext', () => {
       });
 
       it('handles playerJoined message', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame(),
           players: [createMockPlayer()],
-        };
+        });
+        mockMessageVersion = 1;
         const { result, rerender } = renderHook(() => useGame(), { wrapper });
 
         expect(result.current.players.length).toBe(1);
 
         // Trigger playerJoined message
-        triggerMessage(rerender, {
+        enqueueMessage(rerender, {
           type: 'playerJoined',
           player: createMockPlayer({ id: 'player-2', name: 'New Player' }),
         });
@@ -267,17 +283,18 @@ describe('GameContext', () => {
       });
 
       it('handles playerLeft message', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame(),
           players: [createMockPlayer(), createMockPlayer({ id: 'player-2', name: 'Player 2' })],
-        };
+        });
+        mockMessageVersion = 1;
         const { result, rerender } = renderHook(() => useGame(), { wrapper });
 
         expect(result.current.players.length).toBe(2);
 
-        triggerMessage(rerender, {
+        enqueueMessage(rerender, {
           type: 'playerLeft',
           playerId: 'player-2',
           playerName: 'Player 2',
@@ -288,17 +305,18 @@ describe('GameContext', () => {
       });
 
       it('handles playerMoved message', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame({ status: 'playing' }),
           players: [createMockPlayer({ position: 5 })],
-        };
+        });
+        mockMessageVersion = 1;
         const { result, rerender } = renderHook(() => useGame(), { wrapper });
 
         expect(result.current.players[0].position).toBe(5);
 
-        triggerMessage(rerender, {
+        enqueueMessage(rerender, {
           type: 'playerMoved',
           playerId: 'player-1',
           playerName: 'Test Player',
@@ -314,15 +332,16 @@ describe('GameContext', () => {
       });
 
       it('handles playerMoved message with snake effect', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame({ status: 'playing' }),
           players: [createMockPlayer({ position: 14 })],
-        };
+        });
+        mockMessageVersion = 1;
         const { result, rerender } = renderHook(() => useGame(), { wrapper });
 
-        triggerMessage(rerender, {
+        enqueueMessage(rerender, {
           type: 'playerMoved',
           playerId: 'player-1',
           playerName: 'Test Player',
@@ -337,15 +356,16 @@ describe('GameContext', () => {
       });
 
       it('handles playerMoved message with ladder effect', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame({ status: 'playing' }),
           players: [createMockPlayer({ position: 1 })],
-        };
+        });
+        mockMessageVersion = 1;
         const { result, rerender } = renderHook(() => useGame(), { wrapper });
 
-        triggerMessage(rerender, {
+        enqueueMessage(rerender, {
           type: 'playerMoved',
           playerId: 'player-1',
           playerName: 'Test Player',
@@ -360,17 +380,18 @@ describe('GameContext', () => {
       });
 
       it('handles gameStarted message', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame(),
           players: [createMockPlayer({ position: 5 })],
-        };
+        });
+        mockMessageVersion = 1;
         const { result, rerender } = renderHook(() => useGame(), { wrapper });
 
         expect(result.current.game?.status).toBe('waiting');
 
-        triggerMessage(rerender, {
+        enqueueMessage(rerender, {
           type: 'gameStarted',
           game: createMockGame({ status: 'playing' }),
         });
@@ -381,15 +402,16 @@ describe('GameContext', () => {
       });
 
       it('handles gameEnded message', () => {
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame({ status: 'playing' }),
           players: [createMockPlayer()],
-        };
+        });
+        mockMessageVersion = 1;
         const { result, rerender } = renderHook(() => useGame(), { wrapper });
 
-        triggerMessage(rerender, {
+        enqueueMessage(rerender, {
           type: 'gameEnded',
           winnerId: 'player-1',
           winnerName: 'Test Player',
@@ -402,7 +424,7 @@ describe('GameContext', () => {
       it('handles error message', () => {
         const { result, rerender } = renderHook(() => useGame(), { wrapper });
 
-        triggerMessage(rerender, {
+        enqueueMessage(rerender, {
           type: 'error',
           code: 'GAME_NOT_FOUND',
           message: 'Game not found',
@@ -411,27 +433,18 @@ describe('GameContext', () => {
         expect(result.current.error).toBe('Game not found');
       });
 
-      it('ignores null lastMessage', () => {
-        mockLastMessage = {
-          type: 'joinedGame',
-          playerId: 'player-1',
-          game: createMockGame(),
-          players: [createMockPlayer()],
-        };
-        const { result, rerender } = renderHook(() => useGame(), { wrapper });
+      it('does not process when messageVersion is 0', () => {
+        // messageVersion stays at 0, so useEffect should skip
+        const { result } = renderHook(() => useGame(), { wrapper });
 
-        const gameBeforeNull = result.current.game;
-
-        // Setting to null should not change state
-        triggerMessage(rerender, null);
-
-        expect(result.current.game).toBe(gameBeforeNull);
+        expect(result.current.game).toBeNull();
+        expect(mockConsumeMessages).not.toHaveBeenCalled();
       });
 
       it('handles unknown message type gracefully', () => {
         const { result, rerender } = renderHook(() => useGame(), { wrapper });
 
-        triggerMessage(rerender, {
+        enqueueMessage(rerender, {
           type: 'unknownType' as ServerMessage['type'],
         } as ServerMessage);
 
@@ -443,12 +456,13 @@ describe('GameContext', () => {
     describe('visibility change and reconnection', () => {
       it('sends rejoinGame message when visibility changes to visible while in a game', () => {
         mockIsConnected = true;
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame(),
           players: [createMockPlayer()],
-        };
+        });
+        mockMessageVersion = 1;
         renderHook(() => useGame(), { wrapper });
 
         mockSendMessage.mockClear();
@@ -488,12 +502,13 @@ describe('GameContext', () => {
       it('sends rejoinGame when reconnected after being disconnected', () => {
         // Start connected with a game
         mockIsConnected = true;
-        mockLastMessage = {
+        mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
           game: createMockGame(),
           players: [createMockPlayer()],
-        };
+        });
+        mockMessageVersion = 1;
         const { rerender } = renderHook(() => useGame(), { wrapper });
 
         mockSendMessage.mockClear();

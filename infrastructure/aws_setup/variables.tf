@@ -25,12 +25,12 @@ variable "terraform_state_bucket" {
 variable "domain_name" {
   description = "Domain name for the frontend"
   type        = string
-  default     = "snakes.techar.ch"
+  default     = "snakes.demos.apps.equal.expert"
 }
 
 variable "route53_zone_name" {
   description = "Route53 hosted zone name"
   type        = string
-  default     = "techar.ch"
+  default     = "demos.apps.equal.expert"
 }
 

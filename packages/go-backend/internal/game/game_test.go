@@ -120,13 +120,13 @@ func TestRollDice(t *testing.T) {
 	if diceRoll < 1 || diceRoll > 6 {
 		t.Errorf("Dice roll should be 1-6, got %d", diceRoll)
 	}
-	if prevPos != 0 {
-		t.Errorf("Previous position should be 0, got %d", prevPos)
+	if prevPos != 1 {
+		t.Errorf("Previous position should be 1, got %d", prevPos)
 	}
-	// New position could be higher than 6 if landing on a ladder
+	// New position could be higher than 7 if landing on a ladder
 	if effect == nil {
-		if newPos < 1 || newPos > 6 {
-			t.Errorf("New position without effect should be 1-6, got %d", newPos)
+		if newPos < 2 || newPos > 7 {
+			t.Errorf("New position without effect should be 2-7, got %d", newPos)
 		}
 	} else if effect.Type != "ladder" && effect.Type != "snake" {
 		t.Errorf("Effect type should be ladder or snake, got %s", effect.Type)

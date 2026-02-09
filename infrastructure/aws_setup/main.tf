@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "snakes-and-ladders-terraform-state"
+    bucket  = "snakes-and-ladders-terraform-state-ee"
     key     = "aws-setup/terraform.tfstate"
     region  = "eu-west-2"
     encrypt = true
