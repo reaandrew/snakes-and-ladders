@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Load test script to simulate multiple players joining a Snakes & Ladders game.
+ * Load test script to simulate multiple players joining and playing a Snakes & Ladders game.
  *
  * Usage:
  *   node load-test.js [options]
@@ -10,15 +10,14 @@
  *   --game=CODE      Join existing game code (otherwise creates new game)
  *   --api=URL        API base URL (default: https://api.snakes.demos.apps.equal.expert)
  *   --delay=MS       Delay between player joins in ms (default: 100)
- *   --play           Simulate gameplay (bots will roll dice when it's their turn)
+ *   --play           Simulate gameplay (bots roll dice until someone wins)
  *   --timeout=SEC    Exit after SEC seconds with success/failure code (for CI)
  *
  * Examples:
  *   node load-test.js --players=10                        # Basic test with 10 players
  *   node load-test.js --players=100 --delay=50            # Fast join 100 players
  *   node load-test.js --players=150 --game=ABCD           # Join existing game
- *   node load-test.js --players=100 --play                # Simulate gameplay
- *   node load-test.js --players=10 --timeout=30           # CI mode: exit after 30s
+ *   node load-test.js --players=10 --play --timeout=60    # CI mode: play until winner or 60s
  */
 
 const WebSocket = require('ws');
@@ -43,6 +42,8 @@ const TIMEOUT_SEC = args.timeout ? parseInt(args.timeout) : null;
 const players = [];
 let gameCode = args.game || null;
 let creatorPlayerId = null;
+let gameFinished = false;
+let winnerName = null;
 
 // Names for bots
 const adjectives = [
@@ -143,12 +144,13 @@ async function createGame() {
   return response.game.code;
 }
 
-function createPlayer(index, gameCode) {
+function createPlayer(index, code) {
   return new Promise((resolve, reject) => {
     const name = generateName(index);
     const ws = new WebSocket(WS_URL, { headers: { Origin: FRONTEND_ORIGIN } });
     let timeoutId = null;
     let resolved = false;
+    let rollInterval = null;
 
     const player = {
       index,
@@ -157,6 +159,12 @@ function createPlayer(index, gameCode) {
       playerId: null,
       connected: false,
       joined: false,
+      stopRolling: () => {
+        if (rollInterval) {
+          clearInterval(rollInterval);
+          rollInterval = null;
+        }
+      },
     };
 
     const cleanup = () => {
@@ -168,11 +176,10 @@ function createPlayer(index, gameCode) {
 
     ws.on('open', () => {
       player.connected = true;
-      // Join the game
       ws.send(
         JSON.stringify({
           action: 'joinGame',
-          gameCode: gameCode,
+          gameCode: code,
           playerName: name,
         })
       );
@@ -187,33 +194,51 @@ function createPlayer(index, gameCode) {
           cleanup();
           player.joined = true;
           player.playerId = msg.playerId;
-          console.log(`[${index}] ${name} joined (ID: ${msg.playerId})`);
+          console.log(`  [Join] ${name} joined (ID: ${msg.playerId})`);
           resolve(player);
         }
 
-        if (msg.type === 'yourTurn' && SIMULATE_PLAY) {
-          // It's this player's turn, roll the dice
-          setTimeout(
+        if (msg.type === 'gameStarted') {
+          // Start rolling dice on a random interval (race mode)
+          rollInterval = setInterval(
             () => {
-              if (ws.readyState === WebSocket.OPEN) {
-                ws.send(
-                  JSON.stringify({
-                    action: 'rollDice',
-                    gameCode: gameCode,
-                  })
-                );
+              if (gameFinished || ws.readyState !== WebSocket.OPEN) {
+                player.stopRolling();
+                return;
               }
+              ws.send(
+                JSON.stringify({
+                  action: 'rollDice',
+                  gameCode: code,
+                  playerId: player.playerId,
+                })
+              );
             },
-            500 + Math.random() * 1000
+            200 + Math.floor(Math.random() * 300)
+          );
+        }
+
+        if (msg.type === 'playerMoved' && msg.playerName === name) {
+          const effectStr = msg.effect
+            ? ` (${msg.effect.type}: ${msg.effect.from} -> ${msg.effect.to})`
+            : '';
+          console.log(
+            `  [Roll] ${name} rolled ${msg.diceRoll}: ${msg.previousPosition} -> ${msg.newPosition}${effectStr}`
           );
         }
 
         if (msg.type === 'gameEnded') {
-          console.log(`Game ended! Winner: ${msg.winnerName || msg.winnerId}`);
+          gameFinished = true;
+          winnerName = msg.winnerName || msg.winnerId;
+          player.stopRolling();
         }
 
         if (msg.type === 'error') {
-          console.error(`[${index}] Error: ${msg.message}`);
+          // Ignore "game has not started" / "game has ended" during play
+          if (msg.code === 'GAME_NOT_STARTED' || msg.code === 'GAME_ALREADY_STARTED') {
+            return;
+          }
+          console.error(`  [Error] ${name}: ${msg.message}`);
           if (!resolved) {
             resolved = true;
             cleanup();
@@ -226,7 +251,7 @@ function createPlayer(index, gameCode) {
     });
 
     ws.on('error', (err) => {
-      console.error(`[${index}] WebSocket error: ${err.message}`);
+      console.error(`  [Error] ${name} WebSocket: ${err.message}`);
       if (!resolved) {
         resolved = true;
         cleanup();
@@ -236,12 +261,12 @@ function createPlayer(index, gameCode) {
 
     ws.on('close', () => {
       player.connected = false;
+      player.stopRolling();
       if (!resolved) {
-        console.log(`[${index}] ${name} disconnected before joining`);
+        console.log(`  [Disconnect] ${name} disconnected before joining`);
       }
     });
 
-    // Timeout for joining
     timeoutId = setTimeout(() => {
       if (!resolved) {
         resolved = true;
@@ -257,11 +282,57 @@ async function sleep(ms) {
 }
 
 function disconnectAll() {
-  console.log('\nDisconnecting all players...');
   players.forEach((p) => {
+    p.stopRolling();
     if (p.ws && p.ws.readyState === WebSocket.OPEN) {
       p.ws.close();
     }
+  });
+}
+
+function startGame() {
+  return new Promise((resolve, reject) => {
+    console.log('\nConnecting as creator to start game...');
+    const ws = new WebSocket(WS_URL, { headers: { Origin: FRONTEND_ORIGIN } });
+
+    ws.on('open', () => {
+      ws.send(
+        JSON.stringify({
+          action: 'rejoinGame',
+          gameCode: gameCode,
+          playerId: creatorPlayerId,
+        })
+      );
+    });
+
+    ws.on('message', (data) => {
+      const msg = JSON.parse(data.toString());
+      if (msg.type === 'joinedGame') {
+        console.log('Starting game...');
+        ws.send(
+          JSON.stringify({
+            action: 'startGame',
+            gameCode: gameCode,
+            playerId: creatorPlayerId,
+          })
+        );
+      }
+      if (msg.type === 'gameStarted') {
+        ws.close();
+        resolve();
+      }
+      if (msg.type === 'error') {
+        ws.close();
+        reject(new Error(msg.message));
+      }
+    });
+
+    ws.on('error', (err) => reject(err));
+
+    setTimeout(() => {
+      ws.close();
+      reject(new Error('Timeout starting game'));
+    }, 10000);
   });
 }
 
@@ -271,10 +342,9 @@ async function main() {
   console.log('='.repeat(60));
   console.log(`API URL: ${API_URL}`);
   console.log(`WebSocket URL: ${WS_URL}`);
-  console.log(`Players to spawn: ${NUM_PLAYERS}`);
-  console.log(`Join delay: ${JOIN_DELAY}ms`);
-  console.log(`Simulate play: ${SIMULATE_PLAY}`);
-  console.log(`CI timeout: ${TIMEOUT_SEC ? TIMEOUT_SEC + 's' : 'disabled'}`);
+  console.log(`Players: ${NUM_PLAYERS}`);
+  console.log(`Play game: ${SIMULATE_PLAY}`);
+  console.log(`Timeout: ${TIMEOUT_SEC ? TIMEOUT_SEC + 's' : 'none'}`);
   console.log('='.repeat(60));
 
   // Create or use existing game
@@ -289,8 +359,8 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\nGame Code: ${gameCode}\n`);
-  console.log('Starting to spawn players...\n');
+  console.log(`\nGame Code: ${gameCode}`);
+  console.log('\n--- Joining Players ---');
 
   const startTime = Date.now();
   let successCount = 0;
@@ -306,85 +376,62 @@ async function main() {
       failCount++;
     }
 
-    // Stagger the connections
     if (i < NUM_PLAYERS - 1) {
       await sleep(JOIN_DELAY);
     }
   }
 
-  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  const joinElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
-  console.log('\n' + '='.repeat(60));
-  console.log('Load Test Complete');
-  console.log('='.repeat(60));
-  console.log(`Game Code: ${gameCode}`);
-  console.log(`Total players: ${NUM_PLAYERS}`);
-  console.log(`Successful joins: ${successCount}`);
-  console.log(`Failed joins: ${failCount}`);
-  console.log(`Time elapsed: ${elapsed}s`);
-  console.log(`Rate: ${(successCount / elapsed).toFixed(1)} players/sec`);
-  console.log('='.repeat(60));
+  console.log(`\n--- Join Summary ---`);
+  console.log(`Joined: ${successCount}/${NUM_PLAYERS} in ${joinElapsed}s`);
 
-  // CI mode: exit with appropriate code
-  if (TIMEOUT_SEC !== null) {
-    const success = failCount === 0 && successCount === NUM_PLAYERS;
-    console.log(`\nCI Mode: ${success ? 'PASSED' : 'FAILED'}`);
+  if (failCount > 0) {
+    console.log(`Failed: ${failCount}`);
+  }
 
-    // Schedule exit after timeout
-    setTimeout(() => {
-      disconnectAll();
-      process.exit(success ? 0 : 1);
-    }, TIMEOUT_SEC * 1000);
+  // If --play flag, start game and wait for winner
+  if (SIMULATE_PLAY && successCount > 0) {
+    await startGame();
 
-    console.log(`Waiting ${TIMEOUT_SEC}s before exit...`);
+    console.log('\n--- Game In Progress ---');
+
+    // Wait for game to finish or timeout
+    const gameStart = Date.now();
+    const maxWait = (TIMEOUT_SEC || 120) * 1000;
+
+    await new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (gameFinished || Date.now() - gameStart > maxWait) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 500);
+    });
+
+    console.log('\n' + '='.repeat(60));
+    if (gameFinished) {
+      console.log(`WINNER: ${winnerName}`);
+    } else {
+      console.log('Game did not finish within timeout');
+    }
+    console.log('='.repeat(60));
+
+    disconnectAll();
+    process.exit(gameFinished ? 0 : 1);
     return;
   }
 
-  if (SIMULATE_PLAY) {
-    console.log('\nBots are now playing. Press Ctrl+C to exit.\n');
-
-    // Start the game if we created it and have the creator player
-    if (creatorPlayerId) {
-      console.log('Starting game...');
-      // Find or create a connection as the creator to start the game
-      const creatorBot = players.find((p) => p.playerId === creatorPlayerId);
-      if (creatorBot && creatorBot.ws.readyState === WebSocket.OPEN) {
-        creatorBot.ws.send(
-          JSON.stringify({
-            action: 'startGame',
-            gameCode: gameCode,
-          })
-        );
-      } else {
-        // Reconnect as creator to start game
-        const startWs = new WebSocket(WS_URL);
-        startWs.on('open', () => {
-          startWs.send(
-            JSON.stringify({
-              action: 'rejoinGame',
-              gameCode: gameCode,
-              playerId: creatorPlayerId,
-            })
-          );
-        });
-        startWs.on('message', (data) => {
-          const msg = JSON.parse(data.toString());
-          if (msg.type === 'gameState' || msg.type === 'joinedGame') {
-            startWs.send(
-              JSON.stringify({
-                action: 'startGame',
-                gameCode: gameCode,
-              })
-            );
-          }
-        });
-      }
-    }
-  } else {
-    console.log('\nPlayers are connected. Press Ctrl+C to disconnect all.\n');
+  // Non-play CI mode: just check joins succeeded
+  if (TIMEOUT_SEC !== null) {
+    const success = failCount === 0 && successCount === NUM_PLAYERS;
+    console.log(`\nCI Result: ${success ? 'PASSED' : 'FAILED'}`);
+    disconnectAll();
+    process.exit(success ? 0 : 1);
+    return;
   }
 
-  // Keep the script running
+  console.log('\nPlayers are connected. Press Ctrl+C to disconnect all.\n');
   process.on('SIGINT', () => {
     disconnectAll();
     process.exit(0);
