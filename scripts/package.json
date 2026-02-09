@@ -1,0 +1,19 @@
+{
+  "name": "snakes-and-ladders-scripts",
+  "version": "1.0.0",
+  "description": "Load testing and utility scripts for Snakes & Ladders",
+  "private": true,
+  "scripts": {
+    "load-test": "node load-test.js",
+    "load-test:small": "node load-test.js --players=10",
+    "load-test:medium": "node load-test.js --players=50",
+    "load-test:large": "node load-test.js --players=100",
+    "smoke-test": "node load-test.js --players=10 --timeout=30"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

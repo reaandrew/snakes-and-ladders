@@ -49,6 +49,7 @@ module.exports = {
     'node_modules',
     'coverage',
     'storybook-static',
+    'scripts',
     '*.config.js',
     '*.config.cjs',
     '*.config.ts',

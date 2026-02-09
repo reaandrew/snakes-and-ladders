@@ -526,6 +526,13 @@ jobs:
           aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
         working-directory: infrastructure
 
+      - name: Smoke Test - WebSocket Load Test
+        working-directory: scripts
+        run: |
+          npm install
+          API_URL=$(cd ../infrastructure && terraform output -raw api_endpoint)
+          node load-test.js --api="$API_URL" --players=10 --timeout=30
+
   release:
     name: Semantic Release
     runs-on: ubuntu-latest
