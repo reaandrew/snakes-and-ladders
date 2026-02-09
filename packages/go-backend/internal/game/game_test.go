@@ -179,17 +179,19 @@ func TestSimultaneousRolling(t *testing.T) {
 	game.Start(alice.ID)
 
 	// Simulate rapid rolling from all players
+	// Game may finish when a player lands on the final square, so
+	// subsequent rolls will return ErrGameNotStarted — that's expected.
 	for i := 0; i < 10; i++ {
 		_, _, _, _, _, err := game.RollDice(alice.ID)
-		if err != nil {
+		if err != nil && err != ErrGameNotStarted {
 			t.Errorf("Alice roll %d failed: %v", i, err)
 		}
 		_, _, _, _, _, err = game.RollDice(bob.ID)
-		if err != nil {
+		if err != nil && err != ErrGameNotStarted {
 			t.Errorf("Bob roll %d failed: %v", i, err)
 		}
 		_, _, _, _, _, err = game.RollDice(charlie.ID)
-		if err != nil {
+		if err != nil && err != ErrGameNotStarted {
 			t.Errorf("Charlie roll %d failed: %v", i, err)
 		}
 	}
