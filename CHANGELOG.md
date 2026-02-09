@@ -1,3 +1,19 @@
+## [2.4.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.3.0...v2.4.0) (2026-02-09)
+
+### Features
+
+* add load test script for simulating 100+ bot players ([e20695e](https://github.com/reaandrew/snakes-and-ladders/commit/e20695ea3d20af25f9effe223e31c24644bc9328))
+* add session persistence and rejoin support ([a166795](https://github.com/reaandrew/snakes-and-ladders/commit/a16679571a4487a2886c73058a61bc28158e880b))
+
+### Bug Fixes
+
+* cancel in-progress instance refresh before starting new one ([830421c](https://github.com/reaandrew/snakes-and-ladders/commit/830421c8910049aee9a1375b8ffdb9003d766c8e))
+* correct pre-existing test failures and update infrastructure config ([856ab2b](https://github.com/reaandrew/snakes-and-ladders/commit/856ab2b113ce5cfeb386522f0d439906a07416b5))
+* correct WebSocket origin check in load test and update default origin ([1572338](https://github.com/reaandrew/snakes-and-ladders/commit/157233850b826d4bc72c495e2a56765c9e23fca0))
+* resolve flaky TestSimultaneousRolling race condition ([8840d6f](https://github.com/reaandrew/snakes-and-ladders/commit/8840d6f20573a02d91a4381458a8e69c258d5c0f))
+* resolve security hotspots and add test coverage ([ac1e85f](https://github.com/reaandrew/snakes-and-ladders/commit/ac1e85f559a6bef7b2d002818b880ef132cce5b5))
+* wait for ASG instance refresh before running load test ([3a1888c](https://github.com/reaandrew/snakes-and-ladders/commit/3a1888c488015c46da0f79bd8d3abca95b245c80))
+
 ## [2.3.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.2.0...v2.3.0) (2026-02-05)
 
 ### Features
