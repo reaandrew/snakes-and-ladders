@@ -11,6 +11,7 @@
  *   --api=URL        API base URL (default: https://api.snakes.demos.apps.equal.expert)
  *   --delay=MS       Delay between player joins in ms (default: 100)
  *   --play           Simulate gameplay (bots roll dice until someone wins)
+ *   --poll=N         Percentage of players using long polling (0-100, default: 0)
  *   --timeout=SEC    Exit after SEC seconds with success/failure code (for CI)
  *
  * Examples:
@@ -18,6 +19,7 @@
  *   node load-test.js --players=100 --delay=50            # Fast join 100 players
  *   node load-test.js --players=150 --game=ABCD           # Join existing game
  *   node load-test.js --players=10 --play --timeout=60    # CI mode: play until winner or 60s
+ *   node load-test.js --players=10 --poll=50 --play       # Mixed: 50% WS, 50% long polling
  */
 
 const WebSocket = require('ws');
@@ -37,6 +39,8 @@ const WS_URL = API_URL.replace('https://', 'wss://').replace('http://', 'ws://')
 const FRONTEND_ORIGIN = API_URL.replace('://api.', '://');
 const JOIN_DELAY = parseInt(args.delay) || 100;
 const SIMULATE_PLAY = args.play || false;
+const POLL_PERCENT = Math.min(100, Math.max(0, parseInt(args.poll) || 0));
+const POLL_URL = API_URL + '/poll';
 const TIMEOUT_SEC = args.timeout ? parseInt(args.timeout) : null;
 
 const players = [];
@@ -97,7 +101,7 @@ function generateName(index) {
   return `${adj}${noun}${index}`;
 }
 
-function httpRequest(url, method = 'GET', body = null) {
+function httpRequest(url, method = 'GET', body = null, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
     const lib = parsedUrl.protocol === 'https:' ? https : http;
@@ -109,6 +113,7 @@ function httpRequest(url, method = 'GET', body = null) {
       method: method,
       headers: {
         'Content-Type': 'application/json',
+        ...extraHeaders,
       },
     };
 
@@ -277,6 +282,123 @@ function createPlayer(index, code) {
   });
 }
 
+async function createPollPlayer(index, code) {
+  const name = generateName(index);
+  const headers = {};
+  let rollInterval = null;
+  let pollInterval = null;
+
+  const player = {
+    index,
+    name,
+    playerId: null,
+    connected: false,
+    joined: false,
+    transport: 'poll',
+    connectionId: null,
+    stopRolling: () => {
+      if (rollInterval) {
+        clearInterval(rollInterval);
+        rollInterval = null;
+      }
+    },
+    stopPolling: () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    },
+  };
+
+  // 1. Connect
+  const connectRes = await httpRequest(`${POLL_URL}/connect`, 'POST');
+  player.connectionId = connectRes.connectionId;
+  player.connected = true;
+  headers['X-Connection-Id'] = player.connectionId;
+
+  // 2. Join game
+  const joinRes = await httpRequest(
+    `${POLL_URL}/send`,
+    'POST',
+    {
+      action: 'joinGame',
+      gameCode: code,
+      playerName: name,
+    },
+    headers
+  );
+
+  if (joinRes.type === 'error') {
+    throw new Error(joinRes.message);
+  }
+
+  player.joined = true;
+  player.playerId = joinRes.playerId;
+  console.log(`  [Join] ${name} joined via poll (ID: ${joinRes.playerId})`);
+
+  // 3. Poll loop — detect gameStarted / gameEnded via game status
+  let rolling = false;
+  pollInterval = setInterval(async () => {
+    try {
+      const res = await httpRequest(`${POLL_URL}/messages`, 'GET', null, headers);
+      if (!res.messages || !res.messages.length) return;
+
+      for (const msg of res.messages) {
+        if (msg.type === 'gameState' && msg.game) {
+          if (msg.game.status === 'playing' && !rolling && !gameFinished) {
+            rolling = true;
+            // 4. Start rolling dice
+            rollInterval = setInterval(
+              async () => {
+                if (gameFinished) {
+                  player.stopRolling();
+                  return;
+                }
+                try {
+                  const rollRes = await httpRequest(
+                    `${POLL_URL}/send`,
+                    'POST',
+                    {
+                      action: 'rollDice',
+                    },
+                    headers
+                  );
+
+                  if (rollRes.type === 'playerMoved' && rollRes.playerName === name) {
+                    const effectStr = rollRes.effect
+                      ? ` (${rollRes.effect.type}: ${rollRes.effect.from} -> ${rollRes.effect.to})`
+                      : '';
+                    console.log(
+                      `  [Roll] ${name} rolled ${rollRes.diceRoll}: ${rollRes.previousPosition} -> ${rollRes.newPosition}${effectStr}`
+                    );
+                  }
+                } catch {
+                  // Ignore roll errors (not our turn, game ended, etc.)
+                }
+              },
+              200 + Math.floor(Math.random() * 300)
+            );
+          }
+
+          if (msg.game.status === 'finished') {
+            gameFinished = true;
+            // Try to find winner from players list
+            if (msg.players) {
+              const winner = msg.players.find((p) => p.position >= 100);
+              if (winner) winnerName = winner.name;
+            }
+            player.stopRolling();
+          }
+        }
+      }
+    } catch {
+      // Ignore poll errors
+    }
+  }, 1000);
+
+  return player;
+}
+
 async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -284,8 +406,15 @@ async function sleep(ms) {
 function disconnectAll() {
   players.forEach((p) => {
     p.stopRolling();
-    if (p.ws && p.ws.readyState === WebSocket.OPEN) {
-      p.ws.close();
+    if (p.transport === 'poll') {
+      if (p.stopPolling) p.stopPolling();
+      httpRequest(`${POLL_URL}/disconnect`, 'POST', null, {
+        'X-Connection-Id': p.connectionId,
+      }).catch(() => {});
+    } else {
+      if (p.ws && p.ws.readyState === WebSocket.OPEN) {
+        p.ws.close();
+      }
     }
   });
 }
@@ -343,6 +472,7 @@ async function main() {
   console.log(`API URL: ${API_URL}`);
   console.log(`WebSocket URL: ${WS_URL}`);
   console.log(`Players: ${NUM_PLAYERS}`);
+  console.log(`Poll players: ${POLL_PERCENT}%`);
   console.log(`Play game: ${SIMULATE_PLAY}`);
   console.log(`Timeout: ${TIMEOUT_SEC ? TIMEOUT_SEC + 's' : 'none'}`);
   console.log('='.repeat(60));
@@ -368,7 +498,11 @@ async function main() {
 
   for (let i = 0; i < NUM_PLAYERS; i++) {
     try {
-      const player = await createPlayer(i, gameCode);
+      const usePoll = POLL_PERCENT > 0 && ((i * 100) / NUM_PLAYERS) % 100 < POLL_PERCENT;
+      const player = usePoll
+        ? await createPollPlayer(i, gameCode)
+        : await createPlayer(i, gameCode);
+      player.transport = player.transport || 'ws';
       players.push(player);
       successCount++;
     } catch (err) {
@@ -383,11 +517,24 @@ async function main() {
 
   const joinElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
+  const wsCount = players.filter((p) => p.transport === 'ws').length;
+  const pollCount = players.filter((p) => p.transport === 'poll').length;
+
   console.log(`\n--- Join Summary ---`);
   console.log(`Joined: ${successCount}/${NUM_PLAYERS} in ${joinElapsed}s`);
 
   if (failCount > 0) {
     console.log(`Failed: ${failCount}`);
+  }
+
+  if (pollCount > 0 || POLL_PERCENT > 0) {
+    console.log(`\n--- Transport Stats ---`);
+    console.log(
+      `WebSocket: ${wsCount} players (${successCount ? Math.round((wsCount / successCount) * 100) : 0}%)`
+    );
+    console.log(
+      `Long Poll: ${pollCount} players (${successCount ? Math.round((pollCount / successCount) * 100) : 0}%)`
+    );
   }
 
   // If --play flag, start game and wait for winner
