@@ -32,7 +32,7 @@ function renderAdminLogin() {
 describe('AdminLogin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('renders login form', () => {

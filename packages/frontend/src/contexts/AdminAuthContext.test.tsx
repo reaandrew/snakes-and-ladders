@@ -9,7 +9,7 @@ describe('AdminAuthContext', () => {
 
   beforeEach(() => {
     global.fetch = mockFetch;
-    localStorage.clear();
+    sessionStorage.clear();
     vi.clearAllMocks();
   });
 
@@ -24,7 +24,7 @@ describe('AdminAuthContext', () => {
       }).toThrow('useAdminAuth must be used within an AdminAuthProvider');
     });
 
-    it('starts unauthenticated when no token in localStorage', () => {
+    it('starts unauthenticated when no token in sessionStorage', () => {
       const { result } = renderHook(() => useAdminAuth(), {
         wrapper: AdminAuthProvider,
       });
@@ -32,8 +32,8 @@ describe('AdminAuthContext', () => {
       expect(result.current.isAuthenticated).toBe(false);
     });
 
-    it('starts authenticated when token exists in localStorage', () => {
-      localStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
+    it('starts authenticated when token exists in sessionStorage', () => {
+      sessionStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
 
       const { result } = renderHook(() => useAdminAuth(), {
         wrapper: AdminAuthProvider,
@@ -57,7 +57,9 @@ describe('AdminAuthContext', () => {
 
         expect(success).toBe(true);
         expect(result.current.isAuthenticated).toBe(true);
-        expect(localStorage.getItem('admin_auth_token')).toBe('Basic QWRtaW46U3VwZXJTZWN1cmUxMjNA');
+        expect(sessionStorage.getItem('admin_auth_token')).toBe(
+          'Basic QWRtaW46U3VwZXJTZWN1cmUxMjNA'
+        );
       });
 
       it('returns false on failed login', async () => {
@@ -93,8 +95,8 @@ describe('AdminAuthContext', () => {
     });
 
     describe('logout', () => {
-      it('clears authentication state and localStorage', () => {
-        localStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
+      it('clears authentication state and sessionStorage', () => {
+        sessionStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
 
         const { result } = renderHook(() => useAdminAuth(), {
           wrapper: AdminAuthProvider,
@@ -107,13 +109,13 @@ describe('AdminAuthContext', () => {
         });
 
         expect(result.current.isAuthenticated).toBe(false);
-        expect(localStorage.getItem('admin_auth_token')).toBeNull();
+        expect(sessionStorage.getItem('admin_auth_token')).toBeNull();
       });
     });
 
     describe('authFetch', () => {
       it('adds authorization header to requests', async () => {
-        localStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
+        sessionStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
         mockFetch.mockResolvedValueOnce({ ok: true });
 
         const { result } = renderHook(() => useAdminAuth(), {
@@ -142,7 +144,7 @@ describe('AdminAuthContext', () => {
       });
 
       it('merges custom headers with auth header', async () => {
-        localStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
+        sessionStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
         mockFetch.mockResolvedValueOnce({ ok: true });
 
         const { result } = renderHook(() => useAdminAuth(), {

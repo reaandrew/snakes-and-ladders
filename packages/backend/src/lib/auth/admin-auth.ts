@@ -1,14 +1,18 @@
-const ADMIN_USERNAME = 'Admin';
-const ADMIN_PASSWORD = 'SuperSecure123@';
-
 export function validateAdminAuth(authHeader: string | undefined): boolean {
+  const adminUsername = process.env.ADMIN_USERNAME;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminUsername || !adminPassword) {
+    return false;
+  }
+
   if (!authHeader?.startsWith('Basic ')) {
     return false;
   }
 
   const base64Credentials = authHeader.slice(6);
   const decoded = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-  const expectedCredentials = `${ADMIN_USERNAME}:${ADMIN_PASSWORD}`;
+  const expectedCredentials = `${adminUsername}:${adminPassword}`;
 
   return decoded === expectedCredentials;
 }

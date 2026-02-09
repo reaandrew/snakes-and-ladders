@@ -80,7 +80,7 @@ const mockGameDetail: AdminGameDetailResponse = {
 };
 
 function renderGameView(code = 'ABC123') {
-  localStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
+  sessionStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
   return render(
     <MemoryRouter initialEntries={[`/admin/games/${code}`]}>
       <AdminAuthProvider>
@@ -95,7 +95,7 @@ function renderGameView(code = 'ABC123') {
 describe('AdminGameView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('displays game code after loading', async () => {

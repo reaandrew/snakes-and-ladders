@@ -50,7 +50,7 @@ const mockGamesResponse: AdminGamesResponse = {
 };
 
 function renderDashboard() {
-  localStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
+  sessionStorage.setItem('admin_auth_token', 'Basic dGVzdDp0ZXN0');
   return render(
     <MemoryRouter>
       <AdminAuthProvider>
@@ -63,7 +63,7 @@ function renderDashboard() {
 describe('AdminDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('renders dashboard title', async () => {

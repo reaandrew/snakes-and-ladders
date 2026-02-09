@@ -1,9 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 import { validateAdminAuth } from './admin-auth';
 
 describe('admin-auth', () => {
   describe('validateAdminAuth', () => {
+    beforeEach(() => {
+      process.env.ADMIN_USERNAME = 'Admin';
+      process.env.ADMIN_PASSWORD = 'SuperSecure123@';
+    });
+
+    afterEach(() => {
+      delete process.env.ADMIN_USERNAME;
+      delete process.env.ADMIN_PASSWORD;
+    });
+
     it('returns true for valid credentials', () => {
       const validToken = 'Basic ' + Buffer.from('Admin:SuperSecure123@').toString('base64');
       expect(validateAdminAuth(validToken)).toBe(true);
@@ -38,6 +48,13 @@ describe('admin-auth', () => {
     it('returns false for missing colon in credentials', () => {
       const noColon = 'Basic ' + Buffer.from('AdminSuperSecure123@').toString('base64');
       expect(validateAdminAuth(noColon)).toBe(false);
+    });
+
+    it('returns false when env vars are not set', () => {
+      delete process.env.ADMIN_USERNAME;
+      delete process.env.ADMIN_PASSWORD;
+      const validToken = 'Basic ' + Buffer.from('Admin:SuperSecure123@').toString('base64');
+      expect(validateAdminAuth(validToken)).toBe(false);
     });
   });
 });

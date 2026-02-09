@@ -1,4 +1,5 @@
 import { createServer } from 'http';
+import { randomInt } from 'node:crypto';
 
 import {
   DEFAULT_BOARD_CONFIG,
@@ -29,13 +30,13 @@ function generateGameCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += chars[randomInt(chars.length)];
   }
   return code;
 }
 
 function rollDice(): number {
-  return Math.floor(Math.random() * 6) + 1;
+  return randomInt(1, 7);
 }
 
 function processMove(position: number, diceRoll: number, board: typeof DEFAULT_BOARD_CONFIG) {

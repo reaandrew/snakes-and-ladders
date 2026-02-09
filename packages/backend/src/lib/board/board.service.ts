@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 import type { BoardConfig, MoveEffect, SnakeOrLadder } from '@snakes-and-ladders/shared';
 
 export interface MoveResult {
@@ -7,7 +9,7 @@ export interface MoveResult {
 }
 
 export function rollDice(): number {
-  return Math.floor(Math.random() * 6) + 1;
+  return randomInt(1, 7);
 }
 
 export function processMove(

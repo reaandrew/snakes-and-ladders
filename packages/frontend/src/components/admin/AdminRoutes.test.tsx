@@ -11,7 +11,7 @@ global.fetch = mockFetch;
 describe('AdminRoutes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    sessionStorage.clear();
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ games: [] }),

@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "snakes-and-ladders-terraform-state"
+    bucket  = "snakes-and-ladders-terraform-state-ee"
     key     = "prod/terraform.tfstate"
     region  = "eu-west-2"
     encrypt = true
@@ -32,7 +32,7 @@ data "aws_caller_identity" "current" {}
 
 locals {
   project = "snakes-and-ladders"
-  env     = "prod"
+  env     = "prod-ee"
   tags = {
     Project     = local.project
     Environment = local.env
@@ -784,7 +784,8 @@ resource "aws_lambda_function" "http_create_game" {
 
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.main.name
+      TABLE_NAME     = aws_dynamodb_table.main.name
+      ALLOWED_ORIGIN = "https://${var.domain_name}"
     }
   }
 
@@ -886,7 +887,8 @@ resource "aws_lambda_function" "http_get_game" {
 
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.main.name
+      TABLE_NAME     = aws_dynamodb_table.main.name
+      ALLOWED_ORIGIN = "https://${var.domain_name}"
     }
   }
 
@@ -988,7 +990,8 @@ resource "aws_lambda_function" "http_poll" {
 
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.main.name
+      TABLE_NAME     = aws_dynamodb_table.main.name
+      ALLOWED_ORIGIN = "https://${var.domain_name}"
     }
   }
 

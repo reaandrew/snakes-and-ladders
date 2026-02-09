@@ -13,7 +13,7 @@ const AUTH_TOKEN_KEY = 'admin_auth_token';
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [authToken, setAuthToken] = useState<string | null>(() => {
-    return localStorage.getItem(AUTH_TOKEN_KEY);
+    return sessionStorage.getItem(AUTH_TOKEN_KEY);
   });
 
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
@@ -29,7 +29,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         setAuthToken(token);
-        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        sessionStorage.setItem(AUTH_TOKEN_KEY, token);
         return true;
       }
     } catch {
@@ -41,7 +41,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setAuthToken(null);
-    localStorage.removeItem(AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(AUTH_TOKEN_KEY);
   }, []);
 
   const authFetch = useCallback(

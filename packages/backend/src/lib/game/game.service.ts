@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 import type {
   Game,
   Move,
@@ -349,7 +351,7 @@ export class GameService {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding confusing chars
     let code = '';
     for (let i = 0; i < 6; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
+      code += chars[randomInt(chars.length)];
     }
     return code;
   }
