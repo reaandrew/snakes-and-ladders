@@ -1,3 +1,10 @@
+## [2.5.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.4.0...v2.5.0) (2026-02-09)
+
+### Features
+
+* increase CI load test to 100 players with 2min timeout ([515e030](https://github.com/reaandrew/snakes-and-ladders/commit/515e030cdcd149081dadfeefff548a766bc5f16b))
+* load test plays full game and reports winner ([f0f4f25](https://github.com/reaandrew/snakes-and-ladders/commit/f0f4f25b71b0227f0139d5c1fcb37836f60ca8c2))
+
 ## [2.4.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.3.0...v2.4.0) (2026-02-09)
 
 ### Features
