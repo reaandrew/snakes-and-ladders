@@ -154,7 +154,7 @@ jobs:
           path: sbom.spdx.json
 
   test-frontend:
-    name: Test Frontend
+    name: Test Website Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -183,7 +183,7 @@ jobs:
           path: packages/frontend/coverage/
 
   test-backend:
-    name: Test Backend
+    name: Test Website Backend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -238,7 +238,7 @@ jobs:
           path: packages/shared/coverage/
 
   test-go:
-    name: Test Go Backend
+    name: Test Game Server
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -259,7 +259,7 @@ jobs:
           path: packages/go-backend/coverage.out
 
   build-go:
-    name: Build Go Backend
+    name: Build Game Server
     runs-on: ubuntu-latest
     needs: [test-go]
     steps:
