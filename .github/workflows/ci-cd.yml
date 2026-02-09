@@ -504,6 +504,23 @@ jobs:
       - name: Trigger ASG Instance Refresh
         run: |
           ASG_NAME=$(terraform output -raw asg_name)
+          # Cancel any in-progress refresh from a previous deploy
+          CURRENT=$(aws autoscaling describe-instance-refreshes \
+            --auto-scaling-group-name "$ASG_NAME" \
+            --query 'InstanceRefreshes[0].Status' --output text 2>/dev/null || echo "None")
+          if [ "$CURRENT" = "InProgress" ] || [ "$CURRENT" = "Pending" ]; then
+            echo "Cancelling existing instance refresh..."
+            aws autoscaling cancel-instance-refresh --auto-scaling-group-name "$ASG_NAME"
+            for i in $(seq 1 30); do
+              STATUS=$(aws autoscaling describe-instance-refreshes \
+                --auto-scaling-group-name "$ASG_NAME" \
+                --query 'InstanceRefreshes[0].Status' --output text)
+              if [ "$STATUS" != "InProgress" ] && [ "$STATUS" != "Pending" ] && [ "$STATUS" != "Cancelling" ]; then
+                break
+              fi
+              sleep 5
+            done
+          fi
           aws autoscaling start-instance-refresh \
             --auto-scaling-group-name "$ASG_NAME" \
             --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 120}'
