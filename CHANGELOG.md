@@ -1,3 +1,17 @@
+## [2.7.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.6.0...v2.7.0) (2026-02-10)
+
+### Features
+
+* add batch parallel player joining to load test ([20e1f1e](https://github.com/reaandrew/snakes-and-ladders/commit/20e1f1e7a60bd52cb40d4f2bef7d9d630b890748))
+* add final summary to load test and separate CI load test jobs ([b19f4c1](https://github.com/reaandrew/snakes-and-ladders/commit/b19f4c1604b0f07d402d53cc7201dd5b35dbd036))
+* add poll endpoints, fix hub race condition, add CloudWatch logging ([96254ac](https://github.com/reaandrew/snakes-and-ladders/commit/96254ac42f53a310f687eee68a976c1703f54f1c))
+* increase max players to 300 and bump CI load tests ([a3c281e](https://github.com/reaandrew/snakes-and-ladders/commit/a3c281e28aae147cbf0de70c40440fc8aed73c7b))
+
+### Bug Fixes
+
+* increase instance refresh wait from 5min to 10min ([37dcb9d](https://github.com/reaandrew/snakes-and-ladders/commit/37dcb9d9a531ccaa23abb71dab48046b9ce00b4e))
+* reduce instance refresh wait times for faster deploys ([d193056](https://github.com/reaandrew/snakes-and-ladders/commit/d1930560f093ee37f0ce4a627e000c6d9ad719da))
+
 ## [2.6.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.5.0...v2.6.0) (2026-02-10)
 
 ### Features
