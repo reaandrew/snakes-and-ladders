@@ -1,3 +1,9 @@
+## [2.7.3](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.2...v2.7.3) (2026-02-10)
+
+### Bug Fixes
+
+* poll ErrorResponse missing type field, causing silent identity failures ([8487d26](https://github.com/reaandrew/snakes-and-ladders/commit/8487d262bf07557310fa7e53f32261cd523f599d))
+
 ## [2.7.2](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.1...v2.7.2) (2026-02-10)
 
 ### Bug Fixes
