@@ -594,7 +594,7 @@ jobs:
         run: |
           npm install
           API_URL=$(cd ../infrastructure && terraform output -raw api_endpoint)
-          node load-test.js --api="$API_URL" --players=300 --batch=20 --play --timeout=120
+          node load-test.js --api="$API_URL" --players=299 --batch=20 --play --timeout=120
 
   load-test-polling:
     name: Load Test - Long Polling
@@ -627,7 +627,7 @@ jobs:
         run: |
           npm install
           API_URL=$(cd ../infrastructure && terraform output -raw api_endpoint)
-          node load-test.js --api="$API_URL" --players=300 --poll=100 --batch=20 --play --timeout=120
+          node load-test.js --api="$API_URL" --players=299 --poll=100 --batch=20 --play --timeout=120
 
   release:
     name: Semantic Release

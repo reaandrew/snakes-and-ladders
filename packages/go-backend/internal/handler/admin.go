@@ -77,7 +77,7 @@ func (h *AdminHandler) HandleListGames(w http.ResponseWriter, r *http.Request) {
 	if !h.validateAuth(r) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Code: "UNAUTHORIZED", Message: "Invalid credentials"})
+		json.NewEncoder(w).Encode(ErrorResponse{Type: "error", Code: "UNAUTHORIZED", Message: "Invalid credentials"})
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *AdminHandler) HandleGetGameDetail(w http.ResponseWriter, r *http.Reques
 	if !h.validateAuth(r) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Code: "UNAUTHORIZED", Message: "Invalid credentials"})
+		json.NewEncoder(w).Encode(ErrorResponse{Type: "error", Code: "UNAUTHORIZED", Message: "Invalid credentials"})
 		return
 	}
 
@@ -138,7 +138,7 @@ func (h *AdminHandler) HandleGetGameDetail(w http.ResponseWriter, r *http.Reques
 	if code == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Code: "INVALID_REQUEST", Message: "Game code is required"})
+		json.NewEncoder(w).Encode(ErrorResponse{Type: "error", Code: "INVALID_REQUEST", Message: "Game code is required"})
 		return
 	}
 
@@ -146,7 +146,7 @@ func (h *AdminHandler) HandleGetGameDetail(w http.ResponseWriter, r *http.Reques
 	if g == nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{Code: "NOT_FOUND", Message: "Game not found"})
+		json.NewEncoder(w).Encode(ErrorResponse{Type: "error", Code: "NOT_FOUND", Message: "Game not found"})
 		return
 	}
 

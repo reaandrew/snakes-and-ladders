@@ -39,6 +39,7 @@ type GetGameResponse struct {
 
 // ErrorResponse represents an error response.
 type ErrorResponse struct {
+	Type    string `json:"type"`
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
@@ -113,7 +114,7 @@ func (h *HTTPHandler) HandleGetGame(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPHandler) writeError(w http.ResponseWriter, status int, code, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(ErrorResponse{Code: code, Message: msg})
+	json.NewEncoder(w).Encode(ErrorResponse{Type: "error", Code: code, Message: msg})
 }
 
 // Helper functions to convert game types to message types

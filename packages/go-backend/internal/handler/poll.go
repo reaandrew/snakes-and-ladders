@@ -489,7 +489,7 @@ func (h *PollHandler) disconnectPlayer(conn *PollConnection) {
 func (h *PollHandler) writeError(w http.ResponseWriter, status int, code, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(ErrorResponse{Code: code, Message: msg})
+	json.NewEncoder(w).Encode(ErrorResponse{Type: "error", Code: code, Message: msg})
 }
 
 // generatePollID creates a unique poll connection ID.
