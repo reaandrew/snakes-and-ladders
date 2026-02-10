@@ -87,6 +87,24 @@ export function Lobby() {
     }
   }, [error, isRejoining]);
 
+  // Timeout: if rejoin doesn't succeed within 10s, give up and go home
+  useEffect(() => {
+    if (!isRejoining || game) return;
+
+    const timeout = setTimeout(() => {
+      if (!game) {
+        console.warn('Rejoin timed out, clearing stale session');
+        clearSession();
+        setIsRejoining(false);
+        setCreatedGameCode('');
+        setCreatedPlayerId('');
+        setIsCreator(false);
+      }
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [isRejoining, game]);
+
   const handleCreateGame = async () => {
     if (!playerName.trim()) return;
 
@@ -288,6 +306,11 @@ export function Lobby() {
             <Logo size="lg" showSubtitle />
           </div>
           <p className="text-center text-slate-400">Reconnecting to game...</p>
+          <div className="mt-4">
+            <Button onClick={handleBack} variant="secondary" fullWidth>
+              Cancel
+            </Button>
+          </div>
         </div>
       </div>
     );

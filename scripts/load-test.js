@@ -50,6 +50,7 @@ let gameCode = args.game || null;
 let creatorPlayerId = null;
 let gameFinished = false;
 let winnerName = null;
+let identityMismatches = 0;
 
 // Names for bots
 const adjectives = [
@@ -201,6 +202,22 @@ function createPlayer(index, code) {
           cleanup();
           player.joined = true;
           player.playerId = msg.playerId;
+
+          // Identity assertion: verify we received a valid playerId
+          if (!msg.playerId) {
+            identityMismatches++;
+            console.error(`  [IDENTITY] ${name}: joinedGame missing playerId!`);
+          }
+
+          // Identity assertion: verify our player name appears in the players list
+          const self = msg.players?.find((p) => p.id === msg.playerId);
+          if (self && self.name !== name) {
+            identityMismatches++;
+            console.error(
+              `  [IDENTITY] ${name}: server thinks we are "${self.name}" (id: ${msg.playerId})`
+            );
+          }
+
           console.log(`  [Join] ${name} joined (ID: ${msg.playerId})`);
           resolve(player);
         }
@@ -225,13 +242,23 @@ function createPlayer(index, code) {
           );
         }
 
-        if (msg.type === 'playerMoved' && msg.playerName === name) {
-          const effectStr = msg.effect
-            ? ` (${msg.effect.type}: ${msg.effect.from} -> ${msg.effect.to})`
-            : '';
-          console.log(
-            `  [Roll] ${name} rolled ${msg.diceRoll}: ${msg.previousPosition} -> ${msg.newPosition}${effectStr}`
-          );
+        if (msg.type === 'playerMoved') {
+          // Identity assertion: if this is OUR roll (matching playerId), name must match
+          if (msg.playerId === player.playerId && msg.playerName !== name) {
+            identityMismatches++;
+            console.error(
+              `  [IDENTITY] ${name}: move response has playerId=${msg.playerId} but playerName="${msg.playerName}"`
+            );
+          }
+
+          if (msg.playerName === name) {
+            const effectStr = msg.effect
+              ? ` (${msg.effect.type}: ${msg.effect.from} -> ${msg.effect.to})`
+              : '';
+            console.log(
+              `  [Roll] ${name} rolled ${msg.diceRoll}: ${msg.previousPosition} -> ${msg.newPosition}${effectStr}`
+            );
+          }
         }
 
         if (msg.type === 'gameEnded') {
@@ -334,6 +361,21 @@ async function createPollPlayer(index, code) {
     throw new Error(joinRes.message);
   }
 
+  // Identity assertion: verify joinedGame response has our playerId
+  if (!joinRes.playerId) {
+    identityMismatches++;
+    console.error(`  [IDENTITY] ${name}: poll joinedGame missing playerId!`);
+  }
+
+  // Identity assertion: verify our name matches in the players list
+  const self = joinRes.players?.find((p) => p.id === joinRes.playerId);
+  if (self && self.name !== name) {
+    identityMismatches++;
+    console.error(
+      `  [IDENTITY] ${name}: poll server thinks we are "${self.name}" (id: ${joinRes.playerId})`
+    );
+  }
+
   player.joined = true;
   player.playerId = joinRes.playerId;
   console.log(`  [Join] ${name} joined via poll (ID: ${joinRes.playerId})`);
@@ -366,13 +408,23 @@ async function createPollPlayer(index, code) {
                     headers
                   );
 
-                  if (rollRes.type === 'playerMoved' && rollRes.playerName === name) {
-                    const effectStr = rollRes.effect
-                      ? ` (${rollRes.effect.type}: ${rollRes.effect.from} -> ${rollRes.effect.to})`
-                      : '';
-                    console.log(
-                      `  [Roll] ${name} rolled ${rollRes.diceRoll}: ${rollRes.previousPosition} -> ${rollRes.newPosition}${effectStr}`
-                    );
+                  if (rollRes.type === 'playerMoved') {
+                    // Identity assertion: our roll must come back with our playerId
+                    if (rollRes.playerId === player.playerId && rollRes.playerName !== name) {
+                      identityMismatches++;
+                      console.error(
+                        `  [IDENTITY] ${name}: poll roll response has playerId=${rollRes.playerId} but playerName="${rollRes.playerName}"`
+                      );
+                    }
+
+                    if (rollRes.playerName === name) {
+                      const effectStr = rollRes.effect
+                        ? ` (${rollRes.effect.type}: ${rollRes.effect.from} -> ${rollRes.effect.to})`
+                        : '';
+                      console.log(
+                        `  [Roll] ${name} rolled ${rollRes.diceRoll}: ${rollRes.previousPosition} -> ${rollRes.newPosition}${effectStr}`
+                      );
+                    }
                   }
                 } catch {
                   // Ignore roll errors (not our turn, game ended, etc.)
@@ -547,6 +599,11 @@ async function main() {
     );
   }
 
+  if (identityMismatches > 0) {
+    console.log(`\n--- IDENTITY ERRORS ---`);
+    console.log(`Mismatches: ${identityMismatches}`);
+  }
+
   // If --play flag, start game and wait for winner
   if (SIMULATE_PLAY && successCount > 0) {
     await startGame();
@@ -587,17 +644,25 @@ async function main() {
     }
     console.log(`Game finished: ${gameFinished}`);
     console.log(`Winner: ${winnerName || 'none'}`);
+    console.log(`Identity mismatches: ${identityMismatches}`);
     console.log(`Duration: ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
     console.log(`Timeout: ${TIMEOUT_SEC ? TIMEOUT_SEC + 's' : 'none'}`);
 
+    if (identityMismatches > 0) {
+      console.error(`\nFAILED: ${identityMismatches} identity mismatch(es) detected!`);
+    }
+
     disconnectAll();
-    process.exit(gameFinished ? 0 : 1);
+    process.exit(gameFinished && identityMismatches === 0 ? 0 : 1);
     return;
   }
 
   // Non-play CI mode: just check joins succeeded
   if (TIMEOUT_SEC !== null) {
-    const success = failCount === 0 && successCount === NUM_PLAYERS;
+    const success = failCount === 0 && successCount === NUM_PLAYERS && identityMismatches === 0;
+    if (identityMismatches > 0) {
+      console.error(`Identity mismatches: ${identityMismatches}`);
+    }
     console.log(`\nCI Result: ${success ? 'PASSED' : 'FAILED'}`);
     disconnectAll();
     process.exit(success ? 0 : 1);
