@@ -547,11 +547,11 @@ jobs:
         run: |
           ASG_NAME=$(terraform output -raw asg_name)
           echo "Waiting for instance refresh to complete..."
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             STATUS=$(aws autoscaling describe-instance-refreshes \
               --auto-scaling-group-name "$ASG_NAME" \
               --query 'InstanceRefreshes[0].Status' --output text)
-            echo "  Attempt $i/30: status=$STATUS"
+            echo "  Attempt $i/60: status=$STATUS"
             if [ "$STATUS" = "Successful" ]; then
               echo "Instance refresh completed successfully"
               break
