@@ -349,6 +349,13 @@ func (h *PollHandler) handlePollRejoinGame(w http.ResponseWriter, conn *PollConn
 		Players:  playerInfos,
 	}
 
+	// Notify WebSocket clients that this player reconnected
+	playerJoinedMsg := message.PlayerJoinedMessage{
+		Type:   message.TypePlayerJoined,
+		Player: playerToInfo(player, code),
+	}
+	h.hub.BroadcastToGame(code, playerJoinedMsg)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(joinedMsg)
 }

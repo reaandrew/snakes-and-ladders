@@ -14,6 +14,7 @@ interface WebSocketContextType {
   consumeMessages: () => ServerMessage[];
   connect: (url: string) => void;
   disconnect: () => void;
+  reconnect: () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -102,6 +103,18 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     wsFailureCountRef.current = 0;
   }, []);
 
+  const reconnect = useCallback(() => {
+    if (!urlRef.current) return;
+    // Tear down existing transport and start fresh
+    transportRef.current?.disconnect();
+    transportRef.current = null;
+    wsFailureCountRef.current = 0;
+    const transport = createTransport('websocket');
+    transportRef.current = transport;
+    setTransportType('websocket');
+    transport.connect(urlRef.current);
+  }, [createTransport]);
+
   const sendMessage = useCallback((message: ClientMessage) => {
     if (transportRef.current?.state === 'connected') {
       transportRef.current.send(message);
@@ -142,6 +155,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
         consumeMessages,
         connect,
         disconnect,
+        reconnect,
       }}
     >
       {children}

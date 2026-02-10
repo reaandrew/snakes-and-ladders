@@ -282,7 +282,7 @@ describe('GameContext', () => {
         expect(result.current.players[1].name).toBe('New Player');
       });
 
-      it('handles playerLeft message', () => {
+      it('handles playerLeft message by marking disconnected', () => {
         mockMessageQueue.push({
           type: 'joinedGame',
           playerId: 'player-1',
@@ -300,7 +300,8 @@ describe('GameContext', () => {
           playerName: 'Player 2',
         });
 
-        expect(result.current.players.length).toBe(1);
+        expect(result.current.players.length).toBe(2);
+        expect(result.current.players[1].isConnected).toBe(false);
         expect(result.current.players[0].id).toBe('player-1');
       });
 

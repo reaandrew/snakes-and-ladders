@@ -78,16 +78,27 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SET_PLAYERS':
       return { ...state, players: action.payload };
 
-    case 'PLAYER_JOINED':
+    case 'PLAYER_JOINED': {
+      const existing = state.players.find((p) => p.id === action.payload.id);
+      if (existing) {
+        // Player reconnected — update their info (marks isConnected: true)
+        return {
+          ...state,
+          players: state.players.map((p) => (p.id === action.payload.id ? action.payload : p)),
+        };
+      }
       return {
         ...state,
         players: [...state.players, action.payload],
       };
+    }
 
     case 'PLAYER_LEFT':
       return {
         ...state,
-        players: state.players.filter((p) => p.id !== action.payload),
+        players: state.players.map((p) =>
+          p.id === action.payload ? { ...p, isConnected: false } : p
+        ),
       };
 
     case 'PLAYER_MOVED': {
@@ -162,7 +173,7 @@ interface GameProviderProps {
 
 export function GameProvider({ children }: GameProviderProps) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
-  const { sendMessage, messageVersion, consumeMessages, isConnected } = useWebSocket();
+  const { sendMessage, messageVersion, consumeMessages, isConnected, reconnect } = useWebSocket();
   const needsRejoinRef = useRef(false);
   const wasConnectedRef = useRef(false);
 
@@ -172,16 +183,20 @@ export function GameProvider({ children }: GameProviderProps) {
       if (document.visibilityState === 'visible' && state.game && state.currentPlayerId) {
         // Mark that we need to rejoin when connection is restored
         needsRejoinRef.current = true;
-        console.log('Device woke up, will rejoin game when connected');
 
-        // If already connected, rejoin immediately
         if (isConnected) {
+          // Already connected, rejoin immediately
+          console.log('Device woke up, rejoining game...');
           sendMessage({
             action: 'rejoinGame',
             gameCode: state.game.code,
             playerId: state.currentPlayerId,
           });
           needsRejoinRef.current = false;
+        } else {
+          // Transport has given up or is disconnected — force a fresh reconnection
+          console.log('Device woke up, reconnecting...');
+          reconnect();
         }
       }
     };
@@ -189,7 +204,10 @@ export function GameProvider({ children }: GameProviderProps) {
     const handleOnline = () => {
       if (state.game && state.currentPlayerId) {
         needsRejoinRef.current = true;
-        console.log('Device came online, will rejoin game when connected');
+        console.log('Device came online, reconnecting...');
+        if (!isConnected) {
+          reconnect();
+        }
       }
     };
 
@@ -200,7 +218,7 @@ export function GameProvider({ children }: GameProviderProps) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
     };
-  }, [state.game, state.currentPlayerId, isConnected, sendMessage]);
+  }, [state.game, state.currentPlayerId, isConnected, sendMessage, reconnect]);
 
   // Handle reconnection - rejoin game if needed
   useEffect(() => {

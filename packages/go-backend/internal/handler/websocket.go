@@ -230,6 +230,13 @@ func (h *WebSocketHandler) handleRejoinGame(client *hub.Client, msg message.Clie
 		Players:  playerInfos,
 	}
 	h.hub.SendToClient(client, joinedMsg)
+
+	// Notify other players that this player reconnected
+	playerJoinedMsg := message.PlayerJoinedMessage{
+		Type:   message.TypePlayerJoined,
+		Player: playerToInfo(player, code),
+	}
+	h.hub.BroadcastToGameExcept(code, client.ID, playerJoinedMsg)
 }
 
 func (h *WebSocketHandler) handleRollDice(client *hub.Client, msg message.ClientMessage) {
