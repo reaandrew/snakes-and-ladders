@@ -460,7 +460,7 @@ resource "aws_autoscaling_group" "main" {
   desired_capacity = 1
 
   health_check_type         = "ELB"
-  health_check_grace_period = 300
+  health_check_grace_period = 120
 
   launch_template {
     id      = aws_launch_template.main.id

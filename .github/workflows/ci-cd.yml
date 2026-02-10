@@ -523,7 +523,7 @@ jobs:
           fi
           aws autoscaling start-instance-refresh \
             --auto-scaling-group-name "$ASG_NAME" \
-            --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 120}'
+            --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 60}'
         working-directory: infrastructure
 
       - name: Build Frontend with API URLs
