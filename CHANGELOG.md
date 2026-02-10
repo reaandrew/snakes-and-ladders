@@ -1,3 +1,9 @@
+## [2.6.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.5.0...v2.6.0) (2026-02-10)
+
+### Features
+
+* add long polling players to load test ([1cff8fb](https://github.com/reaandrew/snakes-and-ladders/commit/1cff8fbb951cdedcb2f893c672ee9b6e93badb08))
+
 ## [2.5.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.4.0...v2.5.0) (2026-02-09)
 
 ### Features
