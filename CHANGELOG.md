@@ -1,3 +1,9 @@
+## [2.7.2](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.1...v2.7.2) (2026-02-10)
+
+### Bug Fixes
+
+* long-polling send response was silently discarded, causing identity swap ([8b5a86f](https://github.com/reaandrew/snakes-and-ladders/commit/8b5a86fc80e45412f10500099f3e294bb60e04ee))
+
 ## [2.7.1](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.0...v2.7.1) (2026-02-10)
 
 ### Bug Fixes
