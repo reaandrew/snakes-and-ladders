@@ -563,18 +563,77 @@ jobs:
           done
         working-directory: infrastructure
 
-      - name: Smoke Test - WebSocket Load Test
+  load-test-websocket:
+    name: Load Test - WebSocket
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [deploy]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: eu-west-2
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.7.0'
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: infrastructure
+
+      - name: Run WebSocket Load Test
         working-directory: scripts
         run: |
           npm install
           API_URL=$(cd ../infrastructure && terraform output -raw api_endpoint)
           node load-test.js --api="$API_URL" --players=100 --play --timeout=120
 
+  load-test-polling:
+    name: Load Test - Long Polling
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [deploy]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: eu-west-2
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.7.0'
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: infrastructure
+
+      - name: Run Long Polling Load Test
+        working-directory: scripts
+        run: |
+          npm install
+          API_URL=$(cd ../infrastructure && terraform output -raw api_endpoint)
+          node load-test.js --api="$API_URL" --players=100 --poll=100 --play --timeout=120
+
   release:
     name: Semantic Release
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [deploy]
+    needs: [load-test-websocket, load-test-polling]
     steps:
       - uses: actions/checkout@v4
         with:

@@ -564,6 +564,22 @@ async function main() {
     }
     console.log('='.repeat(60));
 
+    console.log('\n--- Final Summary ---');
+    console.log(`API URL: ${API_URL}`);
+    console.log(`Players: ${successCount}/${NUM_PLAYERS}`);
+    if (pollCount > 0 || POLL_PERCENT > 0) {
+      console.log(
+        `WebSocket: ${wsCount} players (${successCount ? Math.round((wsCount / successCount) * 100) : 0}%)`
+      );
+      console.log(
+        `Long Poll: ${pollCount} players (${successCount ? Math.round((pollCount / successCount) * 100) : 0}%)`
+      );
+    }
+    console.log(`Game finished: ${gameFinished}`);
+    console.log(`Winner: ${winnerName || 'none'}`);
+    console.log(`Duration: ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+    console.log(`Timeout: ${TIMEOUT_SEC ? TIMEOUT_SEC + 's' : 'none'}`);
+
     disconnectAll();
     process.exit(gameFinished ? 0 : 1);
     return;
