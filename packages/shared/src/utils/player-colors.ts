@@ -1,11 +1,11 @@
 /**
  * Player color generation using HSL with golden ratio hue distribution.
  * This ensures maximum visual separation between consecutive player colors
- * while supporting up to 200 unique, distinguishable colors.
+ * while supporting up to 300 unique, distinguishable colors.
  */
 
 const GOLDEN_RATIO = 0.618033988749895;
-export const MAX_PLAYERS = 200;
+export const MAX_PLAYERS = 300;
 
 /**
  * Converts HSL color values to a hex color string.
@@ -81,7 +81,7 @@ export function generatePlayerColor(index: number): string {
 /**
  * Gets the player color for a given 1-indexed player number.
  *
- * @param playerNumber 1-indexed player number (1-200)
+ * @param playerNumber 1-indexed player number (1-300)
  * @returns Hex color string
  */
 export function getPlayerColor(playerNumber: number): string {
@@ -89,7 +89,7 @@ export function getPlayerColor(playerNumber: number): string {
 }
 
 /**
- * Pre-generated array of 200 unique player colors for consistency.
+ * Pre-generated array of 300 unique player colors for consistency.
  * Colors are generated using golden ratio hue distribution for maximum visual separation.
  */
 export const PLAYER_COLORS: readonly string[] = Object.freeze(

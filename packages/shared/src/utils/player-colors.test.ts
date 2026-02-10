@@ -4,8 +4,8 @@ import { generatePlayerColor, getPlayerColor, PLAYER_COLORS, MAX_PLAYERS } from 
 
 describe('player-colors', () => {
   describe('MAX_PLAYERS', () => {
-    it('equals 200', () => {
-      expect(MAX_PLAYERS).toBe(200);
+    it('equals 300', () => {
+      expect(MAX_PLAYERS).toBe(300);
     });
   });
 
@@ -53,13 +53,13 @@ describe('player-colors', () => {
   });
 
   describe('PLAYER_COLORS', () => {
-    it('has 200 entries', () => {
-      expect(PLAYER_COLORS).toHaveLength(200);
+    it('has 300 entries', () => {
+      expect(PLAYER_COLORS).toHaveLength(300);
     });
 
     it('contains all unique colors', () => {
       const unique = new Set(PLAYER_COLORS);
-      expect(unique.size).toBe(200);
+      expect(unique.size).toBe(300);
     });
 
     it('contains valid hex color strings', () => {

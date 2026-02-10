@@ -7,7 +7,7 @@ import (
 )
 
 // MaxPlayers is the maximum number of players per game.
-const MaxPlayers = 200
+const MaxPlayers = 300
 
 // Golden ratio for color distribution
 const goldenRatio = 0.618033988749895
