@@ -88,6 +88,13 @@ export class LongPollingTransport implements Transport {
       if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
       }
+
+      // Server returns game responses (joinedGame, playerMoved, etc.) in the
+      // response body — deliver them as messages so state is updated correctly.
+      const data = (await response.json()) as ServerMessage;
+      if (data && data.type) {
+        this.config.events.onMessage(data);
+      }
     } catch (error) {
       console.error('Failed to send message via long-polling:', error);
       this.config.events.onError(error as Error);

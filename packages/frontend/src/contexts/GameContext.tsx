@@ -267,21 +267,23 @@ export function GameProvider({ children }: GameProviderProps) {
           break;
 
         case 'gameState':
-          // gameState is sent in response to rejoinGame - update game state
+          // gameState snapshot from long-polling — update game/players but
+          // never overwrite currentPlayerId (it's set by joinedGame).
           if (message.game.status === 'finished') {
             clearSession();
             dispatch({ type: 'SET_ERROR', payload: 'That game has already ended.' });
             break;
           }
-          // The playerId is already known from the rejoin request
-          dispatch({
-            type: 'SET_GAME',
-            payload: {
-              game: message.game,
-              players: message.players,
-              playerId: state.currentPlayerId || message.players?.[0]?.id,
-            },
-          });
+          if (state.currentPlayerId) {
+            dispatch({
+              type: 'SET_GAME',
+              payload: {
+                game: message.game,
+                players: message.players,
+                playerId: state.currentPlayerId,
+              },
+            });
+          }
           break;
 
         case 'playerJoined':

@@ -454,6 +454,166 @@ describe('GameContext', () => {
       });
     });
 
+    describe('player identity preservation', () => {
+      it('gameState message never overwrites currentPlayerId', () => {
+        // First, join as player-2 (not the first player in the list)
+        mockMessageQueue.push({
+          type: 'joinedGame',
+          playerId: 'player-2',
+          game: createMockGame({ status: 'playing' }),
+          players: [
+            createMockPlayer({ id: 'player-1', name: 'Player 1' }),
+            createMockPlayer({ id: 'player-2', name: 'Player 2' }),
+          ],
+        });
+        mockMessageVersion = 1;
+        const { result, rerender } = renderHook(() => useGame(), { wrapper });
+
+        expect(result.current.currentPlayerId).toBe('player-2');
+
+        // Now receive a gameState message (from long-polling)
+        // This must NOT change currentPlayerId to player-1 (first in list)
+        enqueueMessage(rerender, {
+          type: 'gameState',
+          game: createMockGame({ status: 'playing' }),
+          players: [
+            createMockPlayer({ id: 'player-1', name: 'Player 1', position: 5 }),
+            createMockPlayer({ id: 'player-2', name: 'Player 2', position: 10 }),
+          ],
+          currentTurnId: 'player-1',
+        } as ServerMessage);
+
+        // currentPlayerId must still be player-2
+        expect(result.current.currentPlayerId).toBe('player-2');
+        // But players should be updated
+        expect(result.current.players[0].position).toBe(5);
+        expect(result.current.players[1].position).toBe(10);
+      });
+
+      it('gameState is ignored when currentPlayerId is not set', () => {
+        // No joinedGame received, so currentPlayerId is null
+        const { result, rerender } = renderHook(() => useGame(), { wrapper });
+
+        expect(result.current.currentPlayerId).toBeNull();
+
+        enqueueMessage(rerender, {
+          type: 'gameState',
+          game: createMockGame({ status: 'playing' }),
+          players: [createMockPlayer({ id: 'player-1', name: 'Player 1' })],
+          currentTurnId: 'player-1',
+        } as ServerMessage);
+
+        // Should NOT have set currentPlayerId to player-1
+        expect(result.current.currentPlayerId).toBeNull();
+        expect(result.current.game).toBeNull();
+      });
+
+      it('rollDice always sends own player ID, not another player', () => {
+        // Join as player-2
+        mockMessageQueue.push({
+          type: 'joinedGame',
+          playerId: 'player-2',
+          game: createMockGame({ status: 'playing' }),
+          players: [
+            createMockPlayer({ id: 'player-1', name: 'Player 1' }),
+            createMockPlayer({ id: 'player-2', name: 'Player 2' }),
+          ],
+        });
+        mockMessageVersion = 1;
+        const { result, rerender } = renderHook(() => useGame(), { wrapper });
+
+        // Receive a gameState update (as from long-polling)
+        enqueueMessage(rerender, {
+          type: 'gameState',
+          game: createMockGame({ status: 'playing' }),
+          players: [
+            createMockPlayer({ id: 'player-1', name: 'Player 1' }),
+            createMockPlayer({ id: 'player-2', name: 'Player 2' }),
+          ],
+          currentTurnId: 'player-2',
+        } as ServerMessage);
+
+        mockSendMessage.mockClear();
+
+        // Roll dice — must use player-2, never player-1
+        act(() => {
+          result.current.rollDice();
+        });
+
+        expect(mockSendMessage).toHaveBeenCalledWith({
+          action: 'rollDice',
+          gameCode: 'ABC123',
+          playerId: 'player-2',
+        });
+      });
+
+      it('playerLeft marks player disconnected, playerJoined reconnects them', () => {
+        mockMessageQueue.push({
+          type: 'joinedGame',
+          playerId: 'player-1',
+          game: createMockGame({ status: 'playing' }),
+          players: [
+            createMockPlayer({ id: 'player-1', name: 'Player 1', position: 10 }),
+            createMockPlayer({ id: 'player-2', name: 'Player 2', position: 20 }),
+          ],
+        });
+        mockMessageVersion = 1;
+        const { result, rerender } = renderHook(() => useGame(), { wrapper });
+
+        // Player 2 disconnects
+        enqueueMessage(rerender, {
+          type: 'playerLeft',
+          playerId: 'player-2',
+          playerName: 'Player 2',
+        });
+
+        expect(result.current.players.length).toBe(2);
+        expect(result.current.players[1].isConnected).toBe(false);
+        // Position preserved
+        expect(result.current.players[1].position).toBe(20);
+
+        // Player 2 reconnects
+        enqueueMessage(rerender, {
+          type: 'playerJoined',
+          player: createMockPlayer({
+            id: 'player-2',
+            name: 'Player 2',
+            position: 20,
+            isConnected: true,
+          }),
+        });
+
+        expect(result.current.players.length).toBe(2);
+        expect(result.current.players[1].isConnected).toBe(true);
+        expect(result.current.players[1].position).toBe(20);
+      });
+
+      it('playerJoined for existing player does not duplicate them', () => {
+        mockMessageQueue.push({
+          type: 'joinedGame',
+          playerId: 'player-1',
+          game: createMockGame(),
+          players: [
+            createMockPlayer({ id: 'player-1', name: 'Player 1' }),
+            createMockPlayer({ id: 'player-2', name: 'Player 2' }),
+          ],
+        });
+        mockMessageVersion = 1;
+        const { result, rerender } = renderHook(() => useGame(), { wrapper });
+
+        expect(result.current.players.length).toBe(2);
+
+        // Receive playerJoined for already-existing player-2 (reconnection)
+        enqueueMessage(rerender, {
+          type: 'playerJoined',
+          player: createMockPlayer({ id: 'player-2', name: 'Player 2', isConnected: true }),
+        });
+
+        // Should still be 2 players, not 3
+        expect(result.current.players.length).toBe(2);
+      });
+    });
+
     describe('visibility change and reconnection', () => {
       it('sends rejoinGame message when visibility changes to visible while in a game', () => {
         mockIsConnected = true;
