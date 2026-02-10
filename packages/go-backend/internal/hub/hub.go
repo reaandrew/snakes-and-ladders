@@ -15,6 +15,36 @@ type Client struct {
 	PlayerID string
 	Conn     *websocket.Conn
 	Send     chan []byte
+
+	mu     sync.Mutex
+	closed bool
+}
+
+// SafeSend sends data to the client's Send channel without panicking if closed.
+// Returns true if the message was sent, false if the client is closed or buffer full.
+func (c *Client) SafeSend(data []byte) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return false
+	}
+	select {
+	case c.Send <- data:
+		return true
+	default:
+		return false
+	}
+}
+
+// Close marks the client as closed and closes the Send channel.
+// Safe to call multiple times.
+func (c *Client) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.closed {
+		c.closed = true
+		close(c.Send)
+	}
 }
 
 // Hub maintains the set of active clients and broadcasts messages.
@@ -51,7 +81,7 @@ func (h *Hub) Unregister(client *Client) {
 
 	if _, ok := h.clients[client.ID]; ok {
 		delete(h.clients, client.ID)
-		close(client.Send)
+		client.Close()
 	}
 
 	// Remove from game clients
@@ -99,15 +129,16 @@ func (h *Hub) BroadcastToGame(gameCode string, message interface{}) {
 	}
 
 	h.mu.RLock()
-	gameClients := h.gameClients[gameCode]
+	// Take a snapshot of clients under the lock
+	clients := make([]*Client, 0, len(h.gameClients[gameCode]))
+	for _, client := range h.gameClients[gameCode] {
+		clients = append(clients, client)
+	}
 	h.mu.RUnlock()
 
-	for _, client := range gameClients {
-		select {
-		case client.Send <- data:
-		default:
-			// Client buffer full, skip
-			log.Printf("Client %s buffer full, skipping message", client.ID)
+	for _, client := range clients {
+		if !client.SafeSend(data) {
+			log.Printf("Client %s: send failed (closed or buffer full)", client.ID)
 		}
 	}
 }
@@ -121,17 +152,17 @@ func (h *Hub) BroadcastToGameExcept(gameCode, excludeClientID string, message in
 	}
 
 	h.mu.RLock()
-	gameClients := h.gameClients[gameCode]
+	clients := make([]*Client, 0, len(h.gameClients[gameCode]))
+	for _, client := range h.gameClients[gameCode] {
+		if client.ID != excludeClientID {
+			clients = append(clients, client)
+		}
+	}
 	h.mu.RUnlock()
 
-	for _, client := range gameClients {
-		if client.ID == excludeClientID {
-			continue
-		}
-		select {
-		case client.Send <- data:
-		default:
-			log.Printf("Client %s buffer full, skipping message", client.ID)
+	for _, client := range clients {
+		if !client.SafeSend(data) {
+			log.Printf("Client %s: send failed (closed or buffer full)", client.ID)
 		}
 	}
 }
@@ -144,10 +175,8 @@ func (h *Hub) SendToClient(client *Client, message interface{}) {
 		return
 	}
 
-	select {
-	case client.Send <- data:
-	default:
-		log.Printf("Client %s buffer full, skipping message", client.ID)
+	if !client.SafeSend(data) {
+		log.Printf("Client %s: send failed (closed or buffer full)", client.ID)
 	}
 }
 

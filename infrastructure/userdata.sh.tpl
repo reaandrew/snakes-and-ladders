@@ -76,12 +76,24 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'CWEO
   },
   "logs": {
     "logs_collected": {
+      "journald": {
+        "unit": "snakes-server",
+        "log_group_name": "${log_group_name}",
+        "log_stream_name": "{instance_id}/snakes-server",
+        "retention_in_days": 14
+      },
       "files": {
         "collect_list": [
           {
             "file_path": "/var/log/messages",
-            "log_group_name": "/ec2/snakes-and-ladders-prod",
+            "log_group_name": "${log_group_name}",
             "log_stream_name": "{instance_id}/messages",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/var/log/userdata.log",
+            "log_group_name": "${log_group_name}",
+            "log_stream_name": "{instance_id}/userdata",
             "retention_in_days": 14
           }
         ]

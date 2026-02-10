@@ -413,6 +413,7 @@ resource "aws_launch_template" "main" {
     deploy_bucket   = aws_s3_bucket.deploy.bucket
     aws_region      = var.aws_region
     allowed_origins = "https://${var.domain_name}"
+    log_group_name  = aws_cloudwatch_log_group.ec2.name
   }))
 
   tag_specifications {
