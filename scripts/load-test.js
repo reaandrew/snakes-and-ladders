@@ -12,6 +12,7 @@
  *   --delay=MS       Delay between player joins in ms (default: 100)
  *   --play           Simulate gameplay (bots roll dice until someone wins)
  *   --poll=N         Percentage of players using long polling (0-100, default: 0)
+ *   --batch=N        Number of players to join concurrently per batch (default: 10)
  *   --timeout=SEC    Exit after SEC seconds with success/failure code (for CI)
  *
  * Examples:
@@ -41,6 +42,7 @@ const JOIN_DELAY = parseInt(args.delay) || 100;
 const SIMULATE_PLAY = args.play || false;
 const POLL_PERCENT = Math.min(100, Math.max(0, parseInt(args.poll) || 0));
 const POLL_URL = API_URL + '/poll';
+const BATCH_SIZE = Math.max(1, parseInt(args.batch) || 10);
 const TIMEOUT_SEC = args.timeout ? parseInt(args.timeout) : null;
 
 const players = [];
@@ -473,6 +475,7 @@ async function main() {
   console.log(`WebSocket URL: ${WS_URL}`);
   console.log(`Players: ${NUM_PLAYERS}`);
   console.log(`Poll players: ${POLL_PERCENT}%`);
+  console.log(`Batch size: ${BATCH_SIZE}`);
   console.log(`Play game: ${SIMULATE_PLAY}`);
   console.log(`Timeout: ${TIMEOUT_SEC ? TIMEOUT_SEC + 's' : 'none'}`);
   console.log('='.repeat(60));
@@ -496,21 +499,28 @@ async function main() {
   let successCount = 0;
   let failCount = 0;
 
-  for (let i = 0; i < NUM_PLAYERS; i++) {
-    try {
+  for (let batch = 0; batch < NUM_PLAYERS; batch += BATCH_SIZE) {
+    const batchEnd = Math.min(batch + BATCH_SIZE, NUM_PLAYERS);
+    const promises = [];
+
+    for (let i = batch; i < batchEnd; i++) {
       const usePoll = POLL_PERCENT > 0 && ((i * 100) / NUM_PLAYERS) % 100 < POLL_PERCENT;
-      const player = usePoll
-        ? await createPollPlayer(i, gameCode)
-        : await createPlayer(i, gameCode);
-      player.transport = player.transport || 'ws';
-      players.push(player);
-      successCount++;
-    } catch (err) {
-      console.error(`Failed to create player ${i}: ${err.message}`);
-      failCount++;
+      const promise = (usePoll ? createPollPlayer(i, gameCode) : createPlayer(i, gameCode))
+        .then((player) => {
+          player.transport = player.transport || 'ws';
+          players.push(player);
+          successCount++;
+        })
+        .catch((err) => {
+          console.error(`Failed to create player ${i}: ${err.message}`);
+          failCount++;
+        });
+      promises.push(promise);
     }
 
-    if (i < NUM_PLAYERS - 1) {
+    await Promise.all(promises);
+
+    if (batchEnd < NUM_PLAYERS) {
       await sleep(JOIN_DELAY);
     }
   }
