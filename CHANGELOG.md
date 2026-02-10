@@ -1,3 +1,9 @@
+## [2.7.1](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.0...v2.7.1) (2026-02-10)
+
+### Bug Fixes
+
+* reconnection after phone sleep and player disconnect handling ([bceb283](https://github.com/reaandrew/snakes-and-ladders/commit/bceb28360f51af3473a1252481cf46c2b1e2e779))
+
 ## [2.7.0](https://github.com/reaandrew/snakes-and-ladders/compare/v2.6.0...v2.7.0) (2026-02-10)
 
 ### Features
