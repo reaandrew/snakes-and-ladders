@@ -1,3 +1,9 @@
+## [2.7.7](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.6...v2.7.7) (2026-02-11)
+
+### Performance Improvements
+
+* batch player moves and throttle canvas redraws for 150-player games ([f988dea](https://github.com/reaandrew/snakes-and-ladders/commit/f988dea4436592e7d540a88a7fb37e141f375f5b))
+
 ## [2.7.6](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.5...v2.7.6) (2026-02-11)
 
 ### Bug Fixes
