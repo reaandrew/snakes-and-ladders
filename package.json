@@ -1,6 +1,6 @@
 {
   "name": "snakes-and-ladders",
-  "version": "2.7.3",
+  "version": "2.7.4",
   "private": true,
   "description": "Real-time multiplayer Snakes and Ladders web game",
   "keywords": [

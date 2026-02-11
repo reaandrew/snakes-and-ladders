@@ -1,3 +1,9 @@
+## [2.7.4](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.3...v2.7.4) (2026-02-11)
+
+### Bug Fixes
+
+* only animate dice for local player's rolls, bump instance to t3.2xlarge ([15c252b](https://github.com/reaandrew/snakes-and-ladders/commit/15c252ba790b198161ae68993e54dfa89d9eebdd))
+
 ## [2.7.3](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.2...v2.7.3) (2026-02-10)
 
 ### Bug Fixes
