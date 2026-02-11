@@ -1,3 +1,9 @@
+## [2.7.5](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.4...v2.7.5) (2026-02-11)
+
+### Performance Improvements
+
+* only log current player's moves to reduce re-renders ([517dac9](https://github.com/reaandrew/snakes-and-ladders/commit/517dac9575d16f045a8e7745a7a1507c78c254a7))
+
 ## [2.7.4](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.3...v2.7.4) (2026-02-11)
 
 ### Bug Fixes
