@@ -1,4 +1,5 @@
 import type { Player } from '@snakes-and-ladders/shared';
+import React from 'react';
 
 interface PositionIndicatorProps {
   players: Player[];
@@ -16,7 +17,7 @@ function formatOrdinal(n: number): string {
   return `${n}${getOrdinalSuffix(n)}`;
 }
 
-export function PositionIndicator({
+export const PositionIndicator = React.memo(function PositionIndicator({
   players,
   currentPlayerId,
   compact = false,
@@ -92,4 +93,4 @@ export function PositionIndicator({
       </div>
     </div>
   );
-}
+});

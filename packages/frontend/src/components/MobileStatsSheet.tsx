@@ -1,4 +1,5 @@
 import type { Player } from '@snakes-and-ladders/shared';
+import React from 'react';
 
 import { MoveHistory } from './MoveHistory';
 import { PlayerList } from './PlayerList';
@@ -22,7 +23,7 @@ interface MobileStatsSheetProps {
   moves: MoveHistoryEntry[];
 }
 
-export function MobileStatsSheet({
+export const MobileStatsSheet = React.memo(function MobileStatsSheet({
   isExpanded,
   onToggle,
   players,
@@ -95,7 +96,7 @@ export function MobileStatsSheet({
       </div>
     </>
   );
-}
+});
 
 // Keep for backwards compatibility but no longer used
 interface MobileStatsHeaderProps {

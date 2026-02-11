@@ -41,12 +41,15 @@ interface GameState {
   isLoading: boolean;
 }
 
+type MovePayload = NonNullable<GameState['lastMove']>;
+
 type GameAction =
   | { type: 'SET_GAME'; payload: { game: Game; players: Player[]; playerId: string } }
   | { type: 'SET_PLAYERS'; payload: Player[] }
   | { type: 'PLAYER_JOINED'; payload: Player }
   | { type: 'PLAYER_LEFT'; payload: string }
   | { type: 'PLAYER_MOVED'; payload: GameState['lastMove'] }
+  | { type: 'PLAYERS_MOVED_BATCH'; payload: MovePayload[] }
   | { type: 'GAME_STARTED'; payload: Game }
   | { type: 'GAME_ENDED'; payload: { winnerId: string } }
   | { type: 'SET_ERROR'; payload: string | null }
@@ -125,6 +128,51 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         players: state.players.map((p) =>
           p.id === moveData.playerId ? { ...p, position: moveData.newPosition } : p
         ),
+      };
+    }
+
+    case 'PLAYERS_MOVED_BATCH': {
+      const batch = action.payload;
+      if (batch.length === 0) return state;
+
+      // Build a Map of playerId → latest newPosition for O(1) lookups
+      const positionUpdates = new Map<string, number>();
+      for (const move of batch) {
+        positionUpdates.set(move.playerId, move.newPosition);
+      }
+
+      // Collect current player's moves for history
+      const now = Date.now();
+      const currentPlayerMoves: Move[] = [];
+      for (const moveData of batch) {
+        if (moveData.playerId === state.currentPlayerId) {
+          const player = state.players.find((p) => p.id === moveData.playerId);
+          currentPlayerMoves.push({
+            id: `${now}-${moveData.playerId.slice(-6)}-${currentPlayerMoves.length}`,
+            gameCode: state.game?.code || '',
+            playerId: moveData.playerId,
+            playerName: player?.name || 'Unknown',
+            playerColor: player?.color || '#888888',
+            diceRoll: moveData.diceRoll,
+            previousPosition: moveData.previousPosition,
+            newPosition: moveData.newPosition,
+            effect: moveData.effect,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+
+      return {
+        ...state,
+        lastMove: batch[batch.length - 1],
+        moves:
+          currentPlayerMoves.length > 0
+            ? [...currentPlayerMoves.reverse(), ...state.moves].slice(0, 50)
+            : state.moves,
+        players: state.players.map((p) => {
+          const newPos = positionUpdates.get(p.id);
+          return newPos !== undefined ? { ...p, position: newPos } : p;
+        }),
       };
     }
 
@@ -248,6 +296,8 @@ export function GameProvider({ children }: GameProviderProps) {
     if (messageVersion === 0) return;
 
     const messages = consumeMessages();
+    const moveBatch: MovePayload[] = [];
+
     for (const message of messages) {
       switch (message.type) {
         case 'joinedGame':
@@ -296,15 +346,12 @@ export function GameProvider({ children }: GameProviderProps) {
           break;
 
         case 'playerMoved':
-          dispatch({
-            type: 'PLAYER_MOVED',
-            payload: {
-              playerId: message.playerId,
-              diceRoll: message.diceRoll,
-              previousPosition: message.previousPosition,
-              newPosition: message.newPosition,
-              effect: message.effect,
-            },
+          moveBatch.push({
+            playerId: message.playerId,
+            diceRoll: message.diceRoll,
+            previousPosition: message.previousPosition,
+            newPosition: message.newPosition,
+            effect: message.effect,
           });
           break;
 
@@ -320,6 +367,13 @@ export function GameProvider({ children }: GameProviderProps) {
           dispatch({ type: 'SET_ERROR', payload: message.message });
           break;
       }
+    }
+
+    // Dispatch all player moves in a single batch
+    if (moveBatch.length === 1) {
+      dispatch({ type: 'PLAYER_MOVED', payload: moveBatch[0] });
+    } else if (moveBatch.length > 1) {
+      dispatch({ type: 'PLAYERS_MOVED_BATCH', payload: moveBatch });
     }
   }, [messageVersion, consumeMessages]);
 

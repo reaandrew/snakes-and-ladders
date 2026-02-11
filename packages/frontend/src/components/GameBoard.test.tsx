@@ -102,6 +102,13 @@ describe('GameBoard', () => {
     rollDiceMock = vi.fn();
     mockContext = createMockCanvasContext();
 
+    // Mock requestAnimationFrame to run callbacks synchronously (jsdom doesn't flush rAF)
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+
     // Mock canvas getContext
     HTMLCanvasElement.prototype.getContext = vi.fn(
       () => mockContext

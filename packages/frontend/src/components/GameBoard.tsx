@@ -64,187 +64,192 @@ export function GameBoard() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const boardSize = 10;
-    const cellSize = canvasSize / boardSize;
-    const width = canvasSize;
-    const height = canvasSize;
+    const rafId = requestAnimationFrame(() => {
+      const boardSize = 10;
+      const cellSize = canvasSize / boardSize;
+      const width = canvasSize;
+      const height = canvasSize;
 
-    canvas.width = width;
-    canvas.height = height;
+      canvas.width = width;
+      canvas.height = height;
 
-    // Draw board
-    for (let row = 0; row < boardSize; row++) {
-      for (let col = 0; col < boardSize; col++) {
-        // Convert visual row to logical row for correct cell numbering
-        const logicalRow = boardSize - 1 - row;
-        const isLogicalRowEven = logicalRow % 2 === 0;
-        const cellNumber = isLogicalRowEven
-          ? logicalRow * boardSize + col + 1
-          : logicalRow * boardSize + (boardSize - col);
+      // Draw board
+      for (let row = 0; row < boardSize; row++) {
+        for (let col = 0; col < boardSize; col++) {
+          // Convert visual row to logical row for correct cell numbering
+          const logicalRow = boardSize - 1 - row;
+          const isLogicalRowEven = logicalRow % 2 === 0;
+          const cellNumber = isLogicalRowEven
+            ? logicalRow * boardSize + col + 1
+            : logicalRow * boardSize + (boardSize - col);
 
-        const x = col * cellSize;
-        const y = row * cellSize;
+          const x = col * cellSize;
+          const y = row * cellSize;
 
-        // Alternating colors
-        ctx.fillStyle = (row + col) % 2 === 0 ? '#374151' : '#4B5563';
-        ctx.fillRect(x, y, cellSize, cellSize);
+          // Alternating colors
+          ctx.fillStyle = (row + col) % 2 === 0 ? '#374151' : '#4B5563';
+          ctx.fillRect(x, y, cellSize, cellSize);
 
-        // Cell number (responsive font size)
-        ctx.fillStyle = '#9CA3AF';
-        const fontSize = Math.max(10, cellSize * 0.24);
-        ctx.font = `${fontSize}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(cellNumber.toString(), x + cellSize / 2, y + fontSize + 2);
+          // Cell number (responsive font size)
+          ctx.fillStyle = '#9CA3AF';
+          const fontSize = Math.max(10, cellSize * 0.24);
+          ctx.font = `${fontSize}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText(cellNumber.toString(), x + cellSize / 2, y + fontSize + 2);
+        }
       }
-    }
 
-    // Draw snakes and ladders
-    if (board?.snakesAndLadders) {
-      board.snakesAndLadders.forEach((item) => {
-        const startCoords = getCellCoordinates(item.start, cellSize, boardSize);
-        const endCoords = getCellCoordinates(item.end, cellSize, boardSize);
+      // Draw snakes and ladders
+      if (board?.snakesAndLadders) {
+        board.snakesAndLadders.forEach((item) => {
+          const startCoords = getCellCoordinates(item.start, cellSize, boardSize);
+          const endCoords = getCellCoordinates(item.end, cellSize, boardSize);
 
-        // Scale factors for responsive drawing
-        const lineScale = cellSize / 50;
+          // Scale factors for responsive drawing
+          const lineScale = cellSize / 50;
 
-        if (item.type === 'ladder') {
-          // Draw ladder as two parallel lines with rungs
-          ctx.strokeStyle = 'rgba(34, 197, 94, 0.8)'; // Green
-          ctx.lineWidth = Math.max(2, 3 * lineScale);
-          ctx.lineCap = 'round';
+          if (item.type === 'ladder') {
+            // Draw ladder as two parallel lines with rungs
+            ctx.strokeStyle = 'rgba(34, 197, 94, 0.8)'; // Green
+            ctx.lineWidth = Math.max(2, 3 * lineScale);
+            ctx.lineCap = 'round';
 
-          // Calculate perpendicular offset for parallel rails
-          const dx = endCoords.x - startCoords.x;
-          const dy = endCoords.y - startCoords.y;
-          const length = Math.sqrt(dx * dx + dy * dy);
-          const railOffset = 8 * lineScale;
-          const perpX = (-dy / length) * railOffset;
-          const perpY = (dx / length) * railOffset;
+            // Calculate perpendicular offset for parallel rails
+            const dx = endCoords.x - startCoords.x;
+            const dy = endCoords.y - startCoords.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const railOffset = 8 * lineScale;
+            const perpX = (-dy / length) * railOffset;
+            const perpY = (dx / length) * railOffset;
 
-          // Left rail
-          ctx.beginPath();
-          ctx.moveTo(startCoords.x + perpX, startCoords.y + perpY);
-          ctx.lineTo(endCoords.x + perpX, endCoords.y + perpY);
-          ctx.stroke();
-
-          // Right rail
-          ctx.beginPath();
-          ctx.moveTo(startCoords.x - perpX, startCoords.y - perpY);
-          ctx.lineTo(endCoords.x - perpX, endCoords.y - perpY);
-          ctx.stroke();
-
-          // Draw rungs
-          ctx.lineWidth = Math.max(1, 2 * lineScale);
-          const numRungs = Math.max(3, Math.floor(length / (30 * lineScale)));
-          for (let i = 1; i < numRungs; i++) {
-            const t = i / numRungs;
-            const rungX = startCoords.x + dx * t;
-            const rungY = startCoords.y + dy * t;
+            // Left rail
             ctx.beginPath();
-            ctx.moveTo(rungX + perpX, rungY + perpY);
-            ctx.lineTo(rungX - perpX, rungY - perpY);
+            ctx.moveTo(startCoords.x + perpX, startCoords.y + perpY);
+            ctx.lineTo(endCoords.x + perpX, endCoords.y + perpY);
             ctx.stroke();
+
+            // Right rail
+            ctx.beginPath();
+            ctx.moveTo(startCoords.x - perpX, startCoords.y - perpY);
+            ctx.lineTo(endCoords.x - perpX, endCoords.y - perpY);
+            ctx.stroke();
+
+            // Draw rungs
+            ctx.lineWidth = Math.max(1, 2 * lineScale);
+            const numRungs = Math.max(3, Math.floor(length / (30 * lineScale)));
+            for (let i = 1; i < numRungs; i++) {
+              const t = i / numRungs;
+              const rungX = startCoords.x + dx * t;
+              const rungY = startCoords.y + dy * t;
+              ctx.beginPath();
+              ctx.moveTo(rungX + perpX, rungY + perpY);
+              ctx.lineTo(rungX - perpX, rungY - perpY);
+              ctx.stroke();
+            }
+          } else {
+            // Draw snake as a curved wavy line
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // Red
+            ctx.lineWidth = Math.max(3, 6 * lineScale);
+            ctx.lineCap = 'round';
+
+            const dx = endCoords.x - startCoords.x;
+            const dy = endCoords.y - startCoords.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+
+            // Draw wavy snake body using quadratic curves
+            ctx.beginPath();
+            ctx.moveTo(startCoords.x, startCoords.y);
+
+            const segments = 4;
+            const waveAmplitude = Math.min(20 * lineScale, length / 8);
+            for (let i = 1; i <= segments; i++) {
+              const t = i / segments;
+              const prevT = (i - 0.5) / segments;
+
+              // Control point with wave offset
+              const perpX = -dy / length;
+              const perpY = dx / length;
+              const waveOffset = (i % 2 === 0 ? 1 : -1) * waveAmplitude;
+
+              const cpX = startCoords.x + dx * prevT + perpX * waveOffset;
+              const cpY = startCoords.y + dy * prevT + perpY * waveOffset;
+              const endX = startCoords.x + dx * t;
+              const endY = startCoords.y + dy * t;
+
+              ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+            }
+            ctx.stroke();
+
+            // Draw snake head (triangle at start - snakes go from high to low)
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+            const headSize = Math.max(5, 8 * lineScale);
+            const angle = Math.atan2(dy, dx);
+            ctx.beginPath();
+            ctx.moveTo(
+              startCoords.x + Math.cos(angle) * headSize,
+              startCoords.y + Math.sin(angle) * headSize
+            );
+            ctx.lineTo(
+              startCoords.x + Math.cos(angle + 2.5) * headSize,
+              startCoords.y + Math.sin(angle + 2.5) * headSize
+            );
+            ctx.lineTo(
+              startCoords.x + Math.cos(angle - 2.5) * headSize,
+              startCoords.y + Math.sin(angle - 2.5) * headSize
+            );
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw snake tail (small circle at end)
+            ctx.beginPath();
+            ctx.arc(endCoords.x, endCoords.y, Math.max(2, 4 * lineScale), 0, Math.PI * 2);
+            ctx.fill();
           }
-        } else {
-          // Draw snake as a curved wavy line
-          ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // Red
-          ctx.lineWidth = Math.max(3, 6 * lineScale);
-          ctx.lineCap = 'round';
+        });
+      }
 
-          const dx = endCoords.x - startCoords.x;
-          const dy = endCoords.y - startCoords.y;
-          const length = Math.sqrt(dx * dx + dy * dy);
+      // Draw players with numbers
+      const playerRadius = Math.max(10, cellSize * 0.28);
+      const playerOffset = Math.max(12, cellSize * 0.35);
+      players.forEach((player, index) => {
+        if (player.position > 0) {
+          const pos = player.position;
+          const row = Math.floor((pos - 1) / boardSize);
+          const col =
+            row % 2 === 0 ? (pos - 1) % boardSize : boardSize - 1 - ((pos - 1) % boardSize);
 
-          // Draw wavy snake body using quadratic curves
+          const x = col * cellSize + cellSize / 2;
+          const y = (boardSize - 1 - row) * cellSize + cellSize / 2;
+
+          // Offset multiple players on same cell
+          const offsetX = (index % 2) * playerOffset - playerOffset / 2;
+          const offsetY = Math.floor(index / 2) * playerOffset - playerOffset / 2;
+
+          const playerX = x + offsetX;
+          const playerY = y + offsetY;
+
+          // Draw player circle
           ctx.beginPath();
-          ctx.moveTo(startCoords.x, startCoords.y);
-
-          const segments = 4;
-          const waveAmplitude = Math.min(20 * lineScale, length / 8);
-          for (let i = 1; i <= segments; i++) {
-            const t = i / segments;
-            const prevT = (i - 0.5) / segments;
-
-            // Control point with wave offset
-            const perpX = -dy / length;
-            const perpY = dx / length;
-            const waveOffset = (i % 2 === 0 ? 1 : -1) * waveAmplitude;
-
-            const cpX = startCoords.x + dx * prevT + perpX * waveOffset;
-            const cpY = startCoords.y + dy * prevT + perpY * waveOffset;
-            const endX = startCoords.x + dx * t;
-            const endY = startCoords.y + dy * t;
-
-            ctx.quadraticCurveTo(cpX, cpY, endX, endY);
-          }
+          ctx.arc(playerX, playerY, playerRadius, 0, Math.PI * 2);
+          ctx.fillStyle = player.color;
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = Math.max(2, 3 * (cellSize / 50));
           ctx.stroke();
 
-          // Draw snake head (triangle at start - snakes go from high to low)
-          ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
-          const headSize = Math.max(5, 8 * lineScale);
-          const angle = Math.atan2(dy, dx);
-          ctx.beginPath();
-          ctx.moveTo(
-            startCoords.x + Math.cos(angle) * headSize,
-            startCoords.y + Math.sin(angle) * headSize
-          );
-          ctx.lineTo(
-            startCoords.x + Math.cos(angle + 2.5) * headSize,
-            startCoords.y + Math.sin(angle + 2.5) * headSize
-          );
-          ctx.lineTo(
-            startCoords.x + Math.cos(angle - 2.5) * headSize,
-            startCoords.y + Math.sin(angle - 2.5) * headSize
-          );
-          ctx.closePath();
-          ctx.fill();
-
-          // Draw snake tail (small circle at end)
-          ctx.beginPath();
-          ctx.arc(endCoords.x, endCoords.y, Math.max(2, 4 * lineScale), 0, Math.PI * 2);
-          ctx.fill();
+          // Draw player number
+          const playerNumber = index + 1;
+          const numberFontSize = Math.max(10, playerRadius * 1.2);
+          ctx.fillStyle = '#fff';
+          ctx.font = `bold ${numberFontSize}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(playerNumber.toString(), playerX, playerY);
         }
       });
-    }
+    }); // end requestAnimationFrame
 
-    // Draw players with numbers
-    const playerRadius = Math.max(10, cellSize * 0.28);
-    const playerOffset = Math.max(12, cellSize * 0.35);
-    players.forEach((player, index) => {
-      if (player.position > 0) {
-        const pos = player.position;
-        const row = Math.floor((pos - 1) / boardSize);
-        const col = row % 2 === 0 ? (pos - 1) % boardSize : boardSize - 1 - ((pos - 1) % boardSize);
-
-        const x = col * cellSize + cellSize / 2;
-        const y = (boardSize - 1 - row) * cellSize + cellSize / 2;
-
-        // Offset multiple players on same cell
-        const offsetX = (index % 2) * playerOffset - playerOffset / 2;
-        const offsetY = Math.floor(index / 2) * playerOffset - playerOffset / 2;
-
-        const playerX = x + offsetX;
-        const playerY = y + offsetY;
-
-        // Draw player circle
-        ctx.beginPath();
-        ctx.arc(playerX, playerY, playerRadius, 0, Math.PI * 2);
-        ctx.fillStyle = player.color;
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = Math.max(2, 3 * (cellSize / 50));
-        ctx.stroke();
-
-        // Draw player number
-        const playerNumber = index + 1;
-        const numberFontSize = Math.max(10, playerRadius * 1.2);
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${numberFontSize}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(playerNumber.toString(), playerX, playerY);
-      }
-    });
+    return () => cancelAnimationFrame(rafId);
   }, [players, board, canvasSize]);
 
   return (

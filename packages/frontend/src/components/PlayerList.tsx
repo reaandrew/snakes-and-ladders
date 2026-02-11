@@ -1,11 +1,15 @@
 import type { Player } from '@snakes-and-ladders/shared';
+import React from 'react';
 
 interface PlayerListProps {
   players: Player[];
   currentPlayerId: string | null;
 }
 
-export function PlayerList({ players, currentPlayerId }: PlayerListProps) {
+export const PlayerList = React.memo(function PlayerList({
+  players,
+  currentPlayerId,
+}: PlayerListProps) {
   return (
     <div className="rounded-xl bg-slate-700/30 p-4">
       <h2 className="mb-3 text-lg font-semibold text-white">Players ({players.length})</h2>
@@ -36,4 +40,4 @@ export function PlayerList({ players, currentPlayerId }: PlayerListProps) {
       </ul>
     </div>
   );
-}
+});

@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface MoveHistoryEntry {
   id: string;
   playerColor: string;
@@ -13,7 +15,10 @@ interface MoveHistoryProps {
   maxHeight?: string;
 }
 
-export function MoveHistory({ moves, maxHeight = '200px' }: MoveHistoryProps) {
+export const MoveHistory = React.memo(function MoveHistory({
+  moves,
+  maxHeight = '200px',
+}: MoveHistoryProps) {
   if (moves.length === 0) {
     return (
       <div className="rounded-xl bg-slate-700/30 p-4">
@@ -69,4 +74,4 @@ export function MoveHistory({ moves, maxHeight = '200px' }: MoveHistoryProps) {
       </div>
     </div>
   );
-}
+});
