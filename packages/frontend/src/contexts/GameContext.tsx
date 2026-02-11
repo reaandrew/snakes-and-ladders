@@ -117,10 +117,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         effect: moveData.effect,
         timestamp: new Date().toISOString(),
       };
+      const isCurrentPlayer = moveData.playerId === state.currentPlayerId;
       return {
         ...state,
         lastMove: moveData,
-        moves: [newMove, ...state.moves].slice(0, 50), // Keep last 50 moves
+        moves: isCurrentPlayer ? [newMove, ...state.moves].slice(0, 50) : state.moves,
         players: state.players.map((p) =>
           p.id === moveData.playerId ? { ...p, position: moveData.newPosition } : p
         ),
