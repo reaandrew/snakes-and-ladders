@@ -359,11 +359,10 @@ export function GameBoard() {
         <div className="flex flex-1 flex-col justify-center">
           {winner ? (
             <p className="text-lg font-bold text-game-secondary">{winner.name} wins!</p>
-          ) : lastMove ? (
+          ) : lastMove && lastMove.playerId === currentPlayerId ? (
             <div className="space-y-0.5">
               <p className="text-sm font-medium text-white">
-                {players.find((p) => p.id === lastMove.playerId)?.name} rolled{' '}
-                <span className="font-bold text-game-primary">{lastMove.diceRoll}</span>
+                You rolled <span className="font-bold text-game-primary">{lastMove.diceRoll}</span>
               </p>
               <p className="text-xs text-slate-400">
                 {lastMove.previousPosition} → {lastMove.newPosition}
