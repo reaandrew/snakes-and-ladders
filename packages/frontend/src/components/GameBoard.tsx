@@ -324,7 +324,7 @@ export function GameBoard() {
                   <Dice3D
                     onRoll={rollDice}
                     disabled={game?.status !== 'playing'}
-                    lastRoll={lastMove?.diceRoll ?? null}
+                    lastRoll={shouldAnimateDice ? (lastMove?.diceRoll ?? null) : null}
                     size="lg"
                     animate={shouldAnimateDice}
                   />
@@ -333,7 +333,7 @@ export function GameBoard() {
                 <ThreeDice
                   onRoll={rollDice}
                   disabled={game?.status !== 'playing'}
-                  lastRoll={lastMove?.diceRoll ?? null}
+                  lastRoll={shouldAnimateDice ? (lastMove?.diceRoll ?? null) : null}
                   size="lg"
                   animate={shouldAnimateDice}
                 />
@@ -391,7 +391,7 @@ export function GameBoard() {
                 <Dice3D
                   onRoll={rollDice}
                   disabled={game?.status !== 'playing'}
-                  lastRoll={lastMove?.diceRoll ?? null}
+                  lastRoll={shouldAnimateDice ? (lastMove?.diceRoll ?? null) : null}
                   size="lg"
                   animate={shouldAnimateDice}
                 />
@@ -400,7 +400,7 @@ export function GameBoard() {
               <ThreeDice
                 onRoll={rollDice}
                 disabled={game?.status !== 'playing'}
-                lastRoll={lastMove?.diceRoll ?? null}
+                lastRoll={shouldAnimateDice ? (lastMove?.diceRoll ?? null) : null}
                 size="lg"
                 animate={shouldAnimateDice}
               />
