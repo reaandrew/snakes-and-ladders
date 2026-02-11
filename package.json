@@ -34,7 +34,7 @@
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.1",
+    "@playwright/test": "^1.58.2",
     "@semantic-release/changelog": "^6.0.0",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.0",
