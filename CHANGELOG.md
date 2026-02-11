@@ -1,3 +1,9 @@
+## [2.7.6](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.5...v2.7.6) (2026-02-11)
+
+### Bug Fixes
+
+* mobile bottom bar showed every player's last move, not just yours ([1610905](https://github.com/reaandrew/snakes-and-ladders/commit/16109057abd5230b9c6b447e3fbfbb9e8b5d261a))
+
 ## [2.7.5](https://github.com/reaandrew/snakes-and-ladders/compare/v2.7.4...v2.7.5) (2026-02-11)
 
 ### Performance Improvements
